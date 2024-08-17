@@ -1,17 +1,142 @@
-import React from 'react';
-import { Typography } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Typography, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Fab, Box, Chip, Card, CardContent, CardMedia } from '@mui/material';
+import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import Layout from '../components/Layout';
+import AddProgramsDialog from '../components/AddProgramDialog';
+import EditProgramsDialog from '../components/EditProgramsDialog';
+import { getPrograms, deleteProgram } from '../firebase/programsService';
 
-export default function Programs() {
+const Programs = () => {
+  const [programs, setPrograms] = useState([]);
+  const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [selectedProgram, setSelectedProgram] = useState(null);
+
+  useEffect(() => {
+    const fetchPrograms = async () => {
+      const programsData = await getPrograms();
+      setPrograms(programsData);
+
+      console.log("program.programImageUrl=>", programs);
+      
+    };
+    fetchPrograms();
+  }, []);
+
+  const handleAddClick = () => {
+    setOpenAddDialog(true);
+  };
+
+  const handleEditClick = (program) => {
+    setSelectedProgram(program);
+    setOpenEditDialog(true);
+  };
+
+  const handleDeleteClick = async (programId) => {
+    if (window.confirm('Are you sure you want to delete this program?')) {
+      await deleteProgram(programId);
+      setPrograms(programs.filter(p => p.id !== programId));
+    }
+  };
+
+  const handleAddDialogClose = (newProgram) => {
+    setOpenAddDialog(false);
+    if (newProgram) {
+      setPrograms([...programs, newProgram]);
+    }
+  };
+
+  const handleEditDialogClose = (updatedProgram) => {
+    setOpenEditDialog(false);
+    if (updatedProgram) {
+      setPrograms(programs.map(p => p.id === updatedProgram.id ? updatedProgram : p));
+    }
+    setSelectedProgram(null);
+  };
+
   return (
     <ProtectedRoute>
       <Layout>
-        <Typography variant="h4">Programs</Typography>
-        {/* Add your programs content here */}
+        <Typography variant="h4" gutterBottom>Fitness Programs</Typography>
+        <List>
+          {programs.map((program) => (
+            <ListItem key={program.id}>
+              <Card style={{ display: 'flex', width: '100%' }}>
+                <Box style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '30%' }}>
+                  {program.programImageUrl ? (
+                    <CardMedia
+                      component="img"
+                      src={program.programImageUrl}
+                      alt={program.title}
+                      style={{ width: 100, height: 100, borderRadius: '10%', marginTop: 16, objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <Box
+                      style={{
+                        width: 100,
+                        height: 100,
+                        borderRadius: '10%',
+                        marginTop: 16,
+                        backgroundColor: '#e0e0e0',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <Typography variant="body2">No Image</Typography>
+                    </Box>
+                  )}
+                </Box>
+
+                <CardContent style={{ flex: 1 }}>
+                  <ListItemText
+                    primary={program.title}
+                    secondary={
+                      <>
+                        <Typography component="span" variant="body2" color="textSecondary">
+                          {`Duration: ${program.duration} | Level: ${program.level} | Guided: ${program.guidedOrSelfGuidedProgram}`}
+                        </Typography>
+                        <br />
+                        <Typography component="span" variant="body2" color="textSecondary">
+                          Target Areas:
+                        </Typography>
+                        {program?.targetArea?.map((target, index) => (
+                          <Chip key={index} label={target} size="small" style={{ marginRight: 4, marginBottom: 4 }} />
+                        ))}
+                      </>
+                    }
+                  />
+                </CardContent>
+
+                <ListItemSecondaryAction>
+                  <IconButton edge="end" aria-label="edit" onClick={() => handleEditClick(program)}>
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteClick(program.id)}>
+                    <DeleteIcon />
+                  </IconButton>
+                </ListItemSecondaryAction>
+              </Card>
+            </ListItem>
+          ))}
+        </List>
+        <Box sx={{ position: 'fixed', bottom: 16, right: 16 }}>
+          <Fab color="primary" aria-label="add" onClick={handleAddClick}>
+            <AddIcon />
+          </Fab>
+        </Box>
+        <AddProgramsDialog open={openAddDialog} onClose={handleAddDialogClose} />
+        {selectedProgram && (
+          <EditProgramsDialog
+            open={openEditDialog}
+            onClose={handleEditDialogClose}
+            program={selectedProgram}
+          />
+        )}
       </Layout>
     </ProtectedRoute>
   );
 };
 
- 
+export default Programs;

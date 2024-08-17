@@ -66,7 +66,7 @@ const Meditations = () => {
                     component="img"
                     image={meditation.imageUrl} // Replace with your image URL
                     alt={meditation.title}
-                    style={{ width: 100, height: 100, borderRadius: '50%', marginTop: 16 }}
+                    style={{ width: 100, height: 100, borderRadius: '10%', marginTop: 16 }}
                   />
                   <audio controls style={{ marginTop: 8 }}>
                     <source src={meditation.audioUrl} type="audio/mpeg" />  {/* Replace with your audio URL */}
