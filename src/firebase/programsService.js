@@ -1,14 +1,14 @@
-import { ref, push, set, get, remove, update } from 'firebase/database';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from './firebaseConfig';
+import { ref, push, set, get, query, orderByChild, equalTo, remove, update } from "firebase/database";
 
 export const getPrograms = async () => {
     const programsRef = ref(db, 'programs');
     console.log("Fetching programs from:", programsRef);
-    
+
     const snapshot = await get(programsRef);
     console.log("Snapshot received:", snapshot.exists());
-    
+
     const programs = [];
     snapshot.forEach((childSnapshot) => {
         programs.push({ id: childSnapshot.key, ...childSnapshot.val() });
@@ -20,14 +20,13 @@ export const getPrograms = async () => {
 export const addProgram = async (program) => {
     const programsRef = ref(db, 'programs');
     const newProgramRef = push(programsRef);
-    
-    let programImageUrl = '';
 
     try {
-        // Upload Program Image File (if any)
-        if (program.programImageUrl && program.programImageUrl instanceof File) {
-            const imageFileRef = storageRef(storage, `programs/${newProgramRef.key}/programImageUrl/${program.programImageUrl.name}`);
-            await uploadBytes(imageFileRef, program.programImageUrl);
+        // Upload Program Image File (if any) and get URL
+        let programImageUrl = '';
+        if (program.programImageFile instanceof File) {
+            const imageFileRef = storageRef(storage, `programs/${newProgramRef.key}/programImageUrl/${program.programImageFile.name}`);
+            await uploadBytes(imageFileRef, program.programImageFile);
             programImageUrl = await getDownloadURL(imageFileRef);
             console.log("Program image uploaded:", programImageUrl);
         }
@@ -42,9 +41,10 @@ export const addProgram = async (program) => {
             createdAt: Date.now() / 1000, // Current timestamp in seconds
         };
 
-        // Remove the File object before saving to the database
-        delete newProgram.programImageUrl;
+        // Remove the File objects before saving to the database
+        delete newProgram.programImageFile;
 
+        // Save the complete program object to the database
         await set(newProgramRef, newProgram);
         console.log("New program added:", newProgramRef.key);
 
@@ -57,14 +57,13 @@ export const addProgram = async (program) => {
 
 export const updateProgram = async (id, program) => {
     const programRef = ref(db, `programs/${id}`);
-    
-    let programImageUrl = program.programImageUrl;
 
     try {
-        // Upload Program Image File (if any)
-        if (program.programImageUrl && program.programImageUrl instanceof File) {
-            const imageFileRef = storageRef(storage, `programs/${id}/programImageUrl/${program.programImageUrl.name}`);
-            await uploadBytes(imageFileRef, program.programImageUrl);
+        // Upload Program Image File (if any) and get URL
+        let programImageUrl = program.programImageUrl;
+        if (program.programImageFile instanceof File) {
+            const imageFileRef = storageRef(storage, `programs/${id}/programImageUrl/${program.programImageFile.name}`);
+            await uploadBytes(imageFileRef, program.programImageFile);
             programImageUrl = await getDownloadURL(imageFileRef);
             console.log("Program image updated:", programImageUrl);
         }
@@ -78,8 +77,8 @@ export const updateProgram = async (id, program) => {
             weeks: processedWeeks,
         };
 
-        // Remove the File object before saving to the database
-        delete updatedProgram.programImageUrl;
+        // Remove the File objects before saving to the database
+        delete updatedProgram.programImageFile;
 
         await update(programRef, updatedProgram);
         console.log("Program updated:", id);
@@ -126,9 +125,9 @@ const processExercises = async (programId, weekIndex, dayIndex, type, exercises)
         const exercise = exercises[exerciseIndex];
         let gifUrl = exercise.gifUrl;
 
-        if (exercise.gifUrl && exercise.gifUrl instanceof File) {
-            const gifFileRef = storageRef(storage, `programs/${programId}/week${weekIndex}/day${dayIndex}/${type}/${exerciseIndex}/${exercise.gifUrl.name}`);
-            await uploadBytes(gifFileRef, exercise.gifUrl);
+        if (exercise.gifFile instanceof File) {
+            const gifFileRef = storageRef(storage, `programs/${programId}/week${weekIndex}/day${dayIndex}/${type}/${exerciseIndex}/${exercise.gifFile.name}`);
+            await uploadBytes(gifFileRef, exercise.gifFile);
             gifUrl = await getDownloadURL(gifFileRef);
             console.log(`Exercise GIF uploaded: ${type}, Week ${weekIndex}, Day ${dayIndex}, Exercise ${exerciseIndex}`);
         }
@@ -137,29 +136,60 @@ const processExercises = async (programId, weekIndex, dayIndex, type, exercises)
             ...exercise,
             gifUrl,
         });
+
+        // Remove the File object
+        delete processedExercises[exerciseIndex].gifFile;
     }
 
     return processedExercises;
 };
 
-export const deleteProgram = async (id) => {
-    const programRef = ref(db, `programs/${id}`);
-    await remove(programRef);
-    console.log("Program deleted:", id);
-    // Note: This doesn't delete files from storage. You may want to implement that separately.
+export const deleteProgram = async (programId) => {
+    try {
+        // Reference to the "programs" collection in the database
+        const programsRef = ref(db, "programs");
+
+        // Query to find the program where "id" matches the given programId
+        const programQuery = query(programsRef, orderByChild("id"), equalTo(programId));
+
+        // Get the snapshot of the query result
+        const snapshot = await get(programQuery);
+
+        if (snapshot.exists()) {
+            // Fetch the program key (programKey)
+            const programKey = Object.keys(snapshot.val())[0];
+            const programData = snapshot.val()[programKey];
+ 
+            // If there's an associated image, delete it from Firebase Storage
+            if (programData && programData.programImageUrl) {
+                const imageRef = storageRef(storage, programData.programImageUrl);
+                await deleteObject(imageRef);
+            }
+
+            // Delete the program data from the Realtime Database
+            const programRef = ref(db, `programs/${programKey}`);
+            await remove(programRef);
+        } else {
+            console.log("Program with the given id not found");
+        }
+
+    } catch (error) {
+        console.error("Error deleting program:", error);
+    }
 };
+
 
 export const addWeek = async (programId, weekData) => {
     const programRef = ref(db, `programs/${programId}`);
     const snapshot = await get(programRef);
     const program = snapshot.val();
-    
+
     if (!program.weeks) {
         program.weeks = [];
     }
-    
+
     program.weeks.push(weekData);
-    
+
     await update(programRef, { weeks: program.weeks });
     console.log("Week added to program:", programId);
 };
@@ -174,9 +204,9 @@ export const deleteWeek = async (programId, weekIndex) => {
     const programRef = ref(db, `programs/${programId}`);
     const snapshot = await get(programRef);
     const program = snapshot.val();
-    
+
     program.weeks.splice(weekIndex, 1);
-    
+
     await update(programRef, { weeks: program.weeks });
     console.log(`Week ${weekIndex} deleted from program:`, programId);
 };
@@ -185,13 +215,13 @@ export const addDay = async (programId, weekIndex, dayData) => {
     const weekRef = ref(db, `programs/${programId}/weeks/${weekIndex}`);
     const snapshot = await get(weekRef);
     const week = snapshot.val();
-    
+
     if (!week.days) {
         week.days = [];
     }
-    
+
     week.days.push(dayData);
-    
+
     await update(weekRef, { days: week.days });
     console.log(`Day added to Week ${weekIndex} in program:`, programId);
 };
@@ -206,9 +236,9 @@ export const deleteDay = async (programId, weekIndex, dayIndex) => {
     const weekRef = ref(db, `programs/${programId}/weeks/${weekIndex}`);
     const snapshot = await get(weekRef);
     const week = snapshot.val();
-    
+
     week.days.splice(dayIndex, 1);
-    
+
     await update(weekRef, { days: week.days });
     console.log(`Day ${dayIndex} in Week ${weekIndex} deleted from program:`, programId);
 };

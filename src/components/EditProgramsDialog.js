@@ -1,28 +1,47 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, Typography, Grid, Checkbox, FormControlLabel } from '@mui/material';
-import { updateProgram } from '../firebase/programsService';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, Typography, Grid, Checkbox, FormControlLabel, IconButton } from '@mui/material';
+import { getPrograms, updateProgram } from '../firebase/programsService';
+import { v4 as uuidv4 } from 'uuid';
 
 const EditProgramsDialog = ({ open, onClose, program }) => {
-    const [editedProgram, setEditedProgram] = useState(null);
+    const [editedProgram, setEditedProgram] = useState({
+        id: uuidv4(),
+        title: '',
+        description: '',
+        level: '',
+        programImageUrl: null,
+        programImageFile: null,
+        guidedOrSelfGuidedProgram: '',
+        targetArea: [],
+        duration: '',
+        weeks: []
+    });
     const [currentTarget, setCurrentTarget] = useState('');
- 
+    const [programImageFile, setProgramImageFile] = useState(null);
 
     useEffect(() => {
         if (program) {
-            const weeksArray = program.weeks ? Object.keys(program.weeks).map(weekKey => ({
+            const weeksArray = program?.weeks ? program.weeks.map(weekKey => ({
                 ...program.weeks[weekKey],
-                days: Object.keys(program.weeks[weekKey].days).map(dayKey => program.weeks[weekKey].days[dayKey])
+                days: program?.weeks[weekKey]?.days ? program?.weeks[weekKey]?.days.map(dayKey => program.weeks[weekKey].days[dayKey]) : []
             })) : [];
-            
+
             setEditedProgram({
                 ...program,
-                weeks: weeksArray
+                weeks: weeksArray,
+                programImageUrl: program.programImageUrl || ''
             });
-         }
+        }
     }, [program]);
-    
 
     if (!editedProgram) return null;
+
+    const deleteWeek = (weekIndex) => {
+        setEditedProgram(prevProgram => {
+            const newWeeks = prevProgram.weeks.filter((_, index) => index !== weekIndex);
+            return { ...prevProgram, weeks: newWeeks };
+        });
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -30,14 +49,22 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
     };
 
     const handleTargetAreaChange = () => {
-        if (currentTarget && !editedProgram.targetArea.includes(currentTarget)) {
+        if (currentTarget && !Array.isArray(editedProgram?.targetArea)) {
+            setEditedProgram({ ...editedProgram, targetArea: [currentTarget] });
+        } else if (currentTarget && !editedProgram?.targetArea?.includes(currentTarget)) {
             setEditedProgram({ ...editedProgram, targetArea: [...editedProgram.targetArea, currentTarget] });
             setCurrentTarget('');
         }
     };
 
     const handleImageUpload = (e) => {
-        setEditedProgram({ ...editedProgram, programImageUrl: URL.createObjectURL(e.target.files[0]) });
+        const file = e.target.files[0];
+        if (file) {
+            setProgramImageFile(file);
+            // Create a temporary URL for preview
+            const previewUrl = URL.createObjectURL(file);
+            setEditedProgram({ ...editedProgram, programImageUrl: previewUrl });
+        }
     };
 
     const addWeek = () => {
@@ -90,11 +117,23 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const updatedProgram = await updateProgram(editedProgram.id, editedProgram);
+            const programToUpdate = { ...editedProgram };
+            if (programImageFile) {
+                programToUpdate.programImageFile = programImageFile;
+            }
+            const updatedProgram = await updateProgram(editedProgram.id, programToUpdate);
             onClose(updatedProgram);
         } catch (error) {
             console.error('Error updating program:', error);
         }
+    };
+
+    const deleteDay = (weekIndex, dayIndex) => {
+        setEditedProgram(prevProgram => {
+            const newWeeks = [...prevProgram.weeks];
+            newWeeks[weekIndex].days = newWeeks[weekIndex].days.filter((_, index) => index !== dayIndex);
+            return { ...prevProgram, weeks: newWeeks };
+        });
     };
 
     return (
@@ -178,7 +217,7 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                             ))}
                         </Box>
                     </Grid>
-             
+
 
                     <Grid item xs={12}>
                         <input
@@ -198,7 +237,7 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                                 src={editedProgram.programImageUrl}
                                 alt="Uploaded"
                                 style={{
-                                    width: '100px',
+                                    width: 'auto',
                                     height: '100px',
                                     objectFit: 'cover',
                                     borderRadius: '10%',
@@ -213,11 +252,39 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                     <Button onClick={addWeek}>Add Week</Button>
                     {editedProgram?.weeks?.map((week, weekIndex) => (
                         <Box key={weekIndex} mt={2}>
-                            <Typography variant="h6">Week {weekIndex + 1}</Typography>
+                            <Box display="flex" alignItems="center">
+                                <Chip
+                                    key={weekIndex}
+                                    label={`Week ${weekIndex + 1}`}
+                                    onDelete={() => deleteWeek(weekIndex)}
+                                    color="primary"
+                                    variant="outlined"
+                                    style={{
+                                        margin: '4px',
+                                        height: '50px',
+                                        width: '100px'
+                                    }}
+                                />
+                            </Box>
                             <Button onClick={() => addDay(weekIndex)}>Add Day</Button>
-                            {week.days.map((day, dayIndex) => (
-                                <Box key={dayIndex} mt={2} border={1} borderColor="grey.300" p={2}>
-                                    <Typography variant="subtitle1">Day {dayIndex + 1}</Typography>
+
+                            {week?.days?.map((day, dayIndex) => (
+                                <Box key={dayIndex} mt={2} border={1} borderColor="grey.300" p={2} sx={{
+                                    "& .MuiTextField-root": { margin: '6px' }
+                                }}>
+
+                                    <Chip
+                                        key={dayIndex}
+                                        label={`Day ${dayIndex + 1}: ${day.title}`}
+                                        onDelete={() => deleteDay(weekIndex, dayIndex)}
+                                        color="primary"
+                                        variant="outlined"
+                                        style={{
+                                            margin: '4px',
+                                            height: '50px',
+                                            width: '100px'
+                                        }}
+                                    />
                                     <TextField
                                         fullWidth
                                         label="Day Title"
@@ -246,14 +313,16 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                                         }
                                         label="Optional Day"
                                     />
-                                    
+
                                     {/* Warm-up Exercises */}
                                     <Typography variant="subtitle2">Warm-up Exercises</Typography>
                                     <Button onClick={() => addExercise(weekIndex, dayIndex, 'warmUp')}>Add Warm-up Exercise</Button>
-                                    {day.warmUp.map((exercise, exerciseIndex) => (
-                                        <Box key={exerciseIndex} mt={1}  sx={{display: 'flex',
+                                    {day?.warmUp?.map((exercise, exerciseIndex) => (
+                                        <Box key={exerciseIndex} mt={1} sx={{
+                                            display: 'flex',
                                             justifyContent: 'space-between',
-                                            alignItems: 'center'}}>
+                                            alignItems: 'center'
+                                        }}>
                                             <TextField
                                                 label="Exercise Name"
                                                 value={exercise.name}
@@ -298,10 +367,12 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                                     {/* Workout Exercises */}
                                     <Typography variant="subtitle2">Workout Exercises</Typography>
                                     <Button onClick={() => addExercise(weekIndex, dayIndex, 'workout')}>Add Workout Exercise</Button>
-                                    {day.workout.map((exercise, exerciseIndex) => (
-                                        <Box key={exerciseIndex} mt={1}  sx={{display: 'flex',
+                                    {day?.workout?.map((exercise, exerciseIndex) => (
+                                        <Box key={exerciseIndex} mt={1} sx={{
+                                            display: 'flex',
                                             justifyContent: 'space-between',
-                                            alignItems: 'center'}}>
+                                            alignItems: 'center'
+                                        }}>
                                             <TextField
                                                 label="Exercise Name"
                                                 value={exercise.name}
