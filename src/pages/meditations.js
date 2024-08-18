@@ -93,7 +93,7 @@ const Meditations = () => {
                 </CardContent>
 
                 {/* Action Buttons */}
-                <ListItemSecondaryAction>
+                <ListItemSecondaryAction sx={{mr:"25px"}}>
                   <IconButton edge="end" aria-label="edit" onClick={() => handleEditClick(meditation)}>
                     <EditIcon />
                   </IconButton>

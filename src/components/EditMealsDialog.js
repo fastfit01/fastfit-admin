@@ -7,8 +7,8 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
     name: '',
     dietType: '',
     mealTime: '',
-    Ingredients: '',
-    Instructions: '',
+    ingredients: '',
+    instructions: '',
     imageUrl: '',
     imageFile: null
   });
@@ -18,7 +18,7 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
   useEffect(() => {
     if (meal) {
       setEditedMeal(meal);
-      setImagePreview(meal.imageUrl); // Update the image preview with the current image URL
+      setImagePreview(meal.imageUrl);  
     }
   }, [meal]);
 
@@ -62,7 +62,7 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <FormControl fullWidth margin="normal">
-            <InputLabel>Diet Type</InputLabel>
+            <InputLabel sx={{mt: "-8px"}}>Diet Type</InputLabel>
             <Select
               name="dietType"
               value={editedMeal.dietType}
@@ -76,7 +76,7 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
             </Select>
           </FormControl>
           <FormControl fullWidth margin="normal">
-            <InputLabel>Meal Time</InputLabel>
+            <InputLabel sx={{mt: "-8px"}}>Meal Time</InputLabel>
             <Select
               name="mealTime"
               value={editedMeal.mealTime}
@@ -103,7 +103,7 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
             label="Ingredients"
             multiline
             rows={4}
-            value={editedMeal.Ingredients}
+            value={editedMeal.ingredients}
             onChange={handleChange}
           />
           <TextField
@@ -113,7 +113,7 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
             label="Instructions"
             multiline
             rows={4}
-            value={editedMeal.Instructions}
+            value={editedMeal.instructions}
             onChange={handleChange}
           />
           <TextField

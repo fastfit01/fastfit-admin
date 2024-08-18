@@ -14,7 +14,8 @@ const AddProgramsDialog = ({ open, onClose }) => {
         guidedOrSelfGuidedProgram: '',
         targetArea: [],
         duration: '',
-        weeks: []
+        weeks: [],
+        programCategory: ''
     });
 
     const [currentTarget, setCurrentTarget] = useState('');
@@ -110,6 +111,38 @@ const AddProgramsDialog = ({ open, onClose }) => {
         handleExerciseChange(weekIndex, dayIndex, type, exerciseIndex, 'gifFile', file);
     };
 
+    // const handleSubmit = async (e) => {
+    //     e.preventDefault();
+    //     try {
+    //         const programToSubmit = {
+    //             ...program,
+    //             programImageFile: program.programImageFile,
+    //             weeks: program.weeks.map(week => ({
+    //                 ...week,
+    //                 days: week.days.map(day => ({
+    //                     ...day,
+    //                     warmUp: day.warmUp.map(exercise => ({
+    //                         ...exercise,
+    //                         gifFile: exercise.gifFile
+    //                     })),
+    //                     workout: day.workout.map(exercise => ({
+    //                         ...exercise,
+    //                         gifFile: exercise.gifFile
+    //                     }))
+    //                 }))
+    //             }))
+    //         };
+
+    //         console.log("programToSubmit", programToSubmit);
+
+    //         const newProgram = await addProgram(programToSubmit);
+    //         onClose(newProgram);
+    //     } catch (error) {
+    //         console.error('Error adding program:', error);
+    //     }
+    // };
+
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -132,12 +165,15 @@ const AddProgramsDialog = ({ open, onClose }) => {
                 }))
             };
 
+            console.log("programToSubmit", programToSubmit);
+
             const newProgram = await addProgram(programToSubmit);
             onClose(newProgram);
         } catch (error) {
             console.error('Error adding program:', error);
         }
     };
+
 
     const deleteDay = (weekIndex, dayIndex) => {
         setProgram(prevProgram => {
@@ -152,7 +188,27 @@ const AddProgramsDialog = ({ open, onClose }) => {
             <DialogTitle>Add New Program</DialogTitle>
             <DialogContent>
                 <Grid container spacing={2}>
+
                     <Grid item xs={12}>
+                        <FormControl fullWidth margin="normal">
+                            <InputLabel sx={{ mt: "-8px" }}>Program category</InputLabel>
+                            <Select
+                                name="programCategory"
+                                value={program.programCategory}
+                                onChange={handleChange}
+                            >
+                                <MenuItem value="atGymWorkouts">At Gym Workouts</MenuItem>
+                                <MenuItem value="atHomeWorkouts">At Home Workouts</MenuItem>
+                                <MenuItem value="balanceAndStability">Balance and Stability</MenuItem>
+                                <MenuItem value="cardioPrograms">Cardio Programs</MenuItem>
+                                <MenuItem value="coordinationAndAgilityPrograms">Coordination and Agility Programs</MenuItem>
+                                <MenuItem value="kettleBellOnlyPrograms">KettleBell Only Programs</MenuItem>
+                                <MenuItem value="yogaPrograms">Yoga Programs</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Grid>
+
+                    <Grid item xs={12} sx={{ "& .MuiGrid-item": { pt: "25px" } }}>
                         <TextField
                             fullWidth
                             name="title"
@@ -161,6 +217,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                             onChange={handleChange}
                         />
                     </Grid>
+
                     <Grid item xs={12}>
                         <TextField
                             fullWidth
@@ -173,8 +230,8 @@ const AddProgramsDialog = ({ open, onClose }) => {
                         />
                     </Grid>
                     <Grid item xs={6}>
-                        <FormControl fullWidth>
-                            <InputLabel>Level</InputLabel>
+                        <FormControl fullWidth margin="normal">
+                            <InputLabel sx={{ mt: "-8px" }}>Level</InputLabel>
                             <Select
                                 name="level"
                                 value={program.level}
@@ -429,6 +486,11 @@ const AddProgramsDialog = ({ open, onClose }) => {
                     ))}
                 </Box>
             </DialogContent>
+            {/* <DialogActions>
+                <Button onClick={() => onClose()}>Cancel</Button>
+                <Button onClick={handleSubmit} color="primary" variant="contained">Submit</Button>
+            </DialogActions> */}
+
             <DialogActions>
                 <Button onClick={() => onClose()}>Cancel</Button>
                 <Button onClick={handleSubmit} color="primary" variant="contained">Submit</Button>

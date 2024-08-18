@@ -18,7 +18,7 @@ const Programs = () => {
       const programsData = await getPrograms();
       setPrograms(programsData);
 
-      console.log("program.programImageUrl=>", programs);
+      console.log("program.programImageUrl=>", programsData);
       
     };
     fetchPrograms();
@@ -54,6 +54,14 @@ const Programs = () => {
     }
     setSelectedProgram(null);
   };
+
+
+  useEffect(() => {
+    
+   console.log("selectedProgram", selectedProgram);
+   
+  }, [selectedProgram])
+  
 
   return (
     <ProtectedRoute>
@@ -109,7 +117,7 @@ const Programs = () => {
                   />
                 </CardContent>
 
-                <ListItemSecondaryAction>
+                <ListItemSecondaryAction sx={{mr:"30px"}}>
                   <IconButton edge="end" aria-label="edit" onClick={() => handleEditClick(program)}>
                     <EditIcon />
                   </IconButton>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, Typography, Grid, Checkbox, FormControlLabel, IconButton } from '@mui/material';
-import { getPrograms, updateProgram } from '../firebase/programsService';
+import { addProgram, getPrograms, updateProgram } from '../firebase/programsService';
 import { v4 as uuidv4 } from 'uuid';
 
 const EditProgramsDialog = ({ open, onClose, program }) => {
@@ -14,17 +14,20 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
         guidedOrSelfGuidedProgram: '',
         targetArea: [],
         duration: '',
-        weeks: []
+        weeks: [],
+        programCategory: ''  
     });
     const [currentTarget, setCurrentTarget] = useState('');
     const [programImageFile, setProgramImageFile] = useState(null);
 
     useEffect(() => {
         if (program) {
-            const weeksArray = program?.weeks ? program.weeks.map(weekKey => ({
-                ...program.weeks[weekKey],
-                days: program?.weeks[weekKey]?.days ? program?.weeks[weekKey]?.days.map(dayKey => program.weeks[weekKey].days[dayKey]) : []
-            })) : [];
+            const weeksArray = program?.weeks
+                ? program.weeks.map(week => ({
+                    ...week,
+                    days: week?.days ? week.days.map(day => ({ ...day })) : []
+                }))
+                : [];
 
             setEditedProgram({
                 ...program,
@@ -117,14 +120,29 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const programToUpdate = { ...editedProgram };
-            if (programImageFile) {
-                programToUpdate.programImageFile = programImageFile;
-            }
-            const updatedProgram = await updateProgram(editedProgram.id, programToUpdate);
-            onClose(updatedProgram);
+            const programToSubmit = {
+                ...editedProgram,
+                programImageFile: editedProgram.programImageFile,
+                weeks: editedProgram.weeks.map(week => ({
+                    ...week,
+                    days: week.days.map(day => ({
+                        ...day,
+                        warmUp: day.warmUp.map(exercise => ({
+                            ...exercise,
+                            gifFile: exercise.gifFile
+                        })),
+                        workout: day.workout.map(exercise => ({
+                            ...exercise,
+                            gifFile: exercise.gifFile
+                        }))
+                    }))
+                }))
+            };
+            console.log("programToSubmit", programToSubmit);
+            const newProgram = await addProgram(programToSubmit);
+            onClose(newProgram);
         } catch (error) {
-            console.error('Error updating program:', error);
+            console.error('Error adding program:', error);
         }
     };
 
@@ -140,8 +158,27 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
         <Dialog open={open} onClose={() => onClose()} maxWidth="lg" fullWidth>
             <DialogTitle>Edit Program</DialogTitle>
             <DialogContent>
-                <Grid container spacing={2}>
-                    <Grid item xs={12}>
+                <Grid container spacing={2} sx={{ "& .MuiGrid-item": { pt: "25px" } }}>
+                    <Grid item xs={12} >
+                    <FormControl fullWidth margin="normal">
+                            <InputLabel sx={{ mt: "-8px" }}>Program category</InputLabel>
+                            <Select
+                                name="programCategory"
+                                value={program.category}
+                                onChange={handleChange}
+                            >
+                                <MenuItem value="atGymWorkouts">At Gym Workouts</MenuItem>
+                                <MenuItem value="atHomeWorkouts">At Home Workouts</MenuItem>
+                                <MenuItem value="balanceAndStability">Balance and Stability</MenuItem>
+                                <MenuItem value="cardioPrograms">Cardio Programs</MenuItem>
+                                <MenuItem value="coordinationAndAgilityPrograms">Coordination and Agility Programs</MenuItem>
+                                <MenuItem value="kettleBellOnlyPrograms">KettleBell Only Programs</MenuItem>
+                                <MenuItem value="yogaPrograms">Yoga Programs</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Grid>
+
+                    <Grid item xs={12} >
                         <TextField
                             fullWidth
                             name="title"
@@ -162,8 +199,8 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                         />
                     </Grid>
                     <Grid item xs={6}>
-                        <FormControl fullWidth>
-                            <InputLabel>Level</InputLabel>
+                        <FormControl fullWidth margin="normal">
+                            <InputLabel sx={{ mt: "-8px" }}>Level</InputLabel>
                             <Select
                                 name="level"
                                 value={editedProgram.level}
@@ -275,7 +312,7 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
 
                                     <Chip
                                         key={dayIndex}
-                                        label={`Day ${dayIndex + 1}: ${day.title}`}
+                                        label={`Day ${dayIndex + 1}`}
                                         onDelete={() => deleteDay(weekIndex, dayIndex)}
                                         color="primary"
                                         variant="outlined"
