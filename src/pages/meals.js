@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Grid, Card, CardContent, Typography, CardMedia, Fab, IconButton, Box } from '@mui/material';
+import { Grid, Card, CardContent, Typography, CardMedia, Fab, IconButton, Box, CircularProgress } from '@mui/material';
 import { getMeals, deleteMeal } from '../firebase/mealsService';
 import AddMealsDialog from '../components/addMealsDialog';
 import EditMealsDialog from '../components/EditMealsDialog';
@@ -12,16 +12,26 @@ const Meals = () => {
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+
     fetchMeals();
+
   }, []);
 
   const fetchMeals = async () => {
-    const fetchedMeals = await getMeals();
-    const flattenedMeals = flattenMealsStructure(fetchedMeals);
-    setMeals(flattenedMeals);
-    console.log("meals", flattenedMeals);
+    setIsLoading(true);
+    try {
+      const fetchedMeals = await getMeals();
+      const flattenedMeals = flattenMealsStructure(fetchedMeals);
+      setMeals(flattenedMeals);
+      console.log("meals", flattenedMeals);
+    } catch (error) {
+      console.error("Error fetching meals:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const flattenMealsStructure = (mealsData) => {
@@ -52,8 +62,15 @@ const Meals = () => {
 
   const handleDeleteMeal = async (meal) => {
     if (window.confirm('Are you sure you want to delete this meal?')) {
-      await deleteMeal(meal.dietType, meal.mealTime, meal.id);
-      fetchMeals();
+      setIsLoading(true);
+      try {
+        await deleteMeal(meal.dietType, meal.mealTime, meal.id);
+        await fetchMeals();
+      } catch (error) {
+        console.error("Error deleting meal:", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -63,6 +80,16 @@ const Meals = () => {
     setSelectedMeal(null);
     fetchMeals();
   };
+
+  if (isLoading) {
+    return (
+
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{height: '100vh'}}>
+        <CircularProgress />
+      </Box>
+
+    );
+  }
 
   return (
     <ProtectedRoute>

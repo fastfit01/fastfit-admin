@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, FormControl, InputLabel, CircularProgress } from '@mui/material';
 import { updateMeal, uploadImageAndGetURL } from '../firebase/mealsService';
 
 const EditMealsDialog = ({ open, onClose, meal }) => {
@@ -7,8 +7,8 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
     name: '',
     dietType: '',
     mealTime: '',
-    Ingredients: '',
-    Instructions: '',
+    ingredients: '',
+    instructions: '',
     imageUrl: '',
     imageFile: null
   });
@@ -18,9 +18,13 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
   useEffect(() => {
     if (meal) {
       setEditedMeal(meal);
-      setImagePreview(meal.imageUrl); // Update the image preview with the current image URL
+      setImagePreview(meal.imageUrl);
     }
   }, [meal]);
+
+  const [isLoading, setIsLoading] = useState(false);
+
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,6 +47,7 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(!false);
     try {
       let updatedMeal = { ...editedMeal };
       if (editedMeal.imageFile) {
@@ -53,8 +58,20 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
       onClose();
     } catch (error) {
       console.error("Error updating meal:", error);
-     }
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{height: '100vh'}}>
+        <CircularProgress />
+      </Box>
+
+    );
+  }
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -62,7 +79,7 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <FormControl fullWidth margin="normal">
-            <InputLabel>Diet Type</InputLabel>
+            <InputLabel sx={{ mt: "-8px" }}>Diet Type</InputLabel>
             <Select
               name="dietType"
               value={editedMeal.dietType}
@@ -76,7 +93,7 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
             </Select>
           </FormControl>
           <FormControl fullWidth margin="normal">
-            <InputLabel>Meal Time</InputLabel>
+            <InputLabel sx={{ mt: "-8px" }}>Meal Time</InputLabel>
             <Select
               name="mealTime"
               value={editedMeal.mealTime}
@@ -103,7 +120,7 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
             label="Ingredients"
             multiline
             rows={4}
-            value={editedMeal.Ingredients}
+            value={editedMeal.ingredients}
             onChange={handleChange}
           />
           <TextField
@@ -113,7 +130,7 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
             label="Instructions"
             multiline
             rows={4}
-            value={editedMeal.Instructions}
+            value={editedMeal.instructions}
             onChange={handleChange}
           />
           <TextField

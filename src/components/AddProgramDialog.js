@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, Typography, Grid, Checkbox, FormControlLabel } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, Typography, Grid, Checkbox, FormControlLabel, CircularProgress } from '@mui/material';
 import { addProgram } from '../firebase/programsService';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -14,10 +14,14 @@ const AddProgramsDialog = ({ open, onClose }) => {
         guidedOrSelfGuidedProgram: '',
         targetArea: [],
         duration: '',
-        weeks: []
+        weeks: [],
+        programCategory: ''
     });
 
     const [currentTarget, setCurrentTarget] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -112,6 +116,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsLoading(!false);
         try {
             const programToSubmit = {
                 ...program,
@@ -132,12 +137,17 @@ const AddProgramsDialog = ({ open, onClose }) => {
                 }))
             };
 
+            console.log("programToSubmit", programToSubmit);
+
             const newProgram = await addProgram(programToSubmit);
             onClose(newProgram);
         } catch (error) {
             console.error('Error adding program:', error);
+        } finally {
+            setIsLoading(false);
         }
     };
+
 
     const deleteDay = (weekIndex, dayIndex) => {
         setProgram(prevProgram => {
@@ -147,12 +157,42 @@ const AddProgramsDialog = ({ open, onClose }) => {
         });
     };
 
+    if (isLoading) {
+        return (
+
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{height: '100vh'}}>
+                <CircularProgress />
+            </Box>
+
+        );
+    }
+
     return (
         <Dialog open={open} onClose={() => onClose()} maxWidth="lg" fullWidth>
             <DialogTitle>Add New Program</DialogTitle>
             <DialogContent>
                 <Grid container spacing={2}>
+
                     <Grid item xs={12}>
+                        <FormControl fullWidth margin="normal">
+                            <InputLabel sx={{ mt: "-8px" }}>Program category</InputLabel>
+                            <Select
+                                name="programCategory"
+                                value={program.programCategory}
+                                onChange={handleChange}
+                            >
+                                <MenuItem value="atGymWorkouts">At Gym Workouts</MenuItem>
+                                <MenuItem value="atHomeWorkouts">At Home Workouts</MenuItem>
+                                <MenuItem value="balanceAndStability">Balance and Stability</MenuItem>
+                                <MenuItem value="cardioPrograms">Cardio Programs</MenuItem>
+                                <MenuItem value="coordinationAndAgilityPrograms">Coordination and Agility Programs</MenuItem>
+                                <MenuItem value="kettleBellOnlyPrograms">KettleBell Only Programs</MenuItem>
+                                <MenuItem value="yogaPrograms">Yoga Programs</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Grid>
+
+                    <Grid item xs={12} sx={{ "& .MuiGrid-item": { pt: "25px" } }}>
                         <TextField
                             fullWidth
                             name="title"
@@ -161,6 +201,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                             onChange={handleChange}
                         />
                     </Grid>
+
                     <Grid item xs={12}>
                         <TextField
                             fullWidth
@@ -173,8 +214,8 @@ const AddProgramsDialog = ({ open, onClose }) => {
                         />
                     </Grid>
                     <Grid item xs={6}>
-                        <FormControl fullWidth>
-                            <InputLabel>Level</InputLabel>
+                        <FormControl fullWidth margin="normal">
+                            <InputLabel sx={{ mt: "-8px" }}>Level</InputLabel>
                             <Select
                                 name="level"
                                 value={program.level}
@@ -186,7 +227,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                             </Select>
                         </FormControl>
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid item xs={6} sx={{ mt: "15px" }}>
                         <TextField
                             fullWidth
                             name="guidedOrSelfGuidedProgram"
@@ -212,7 +253,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                                 value={currentTarget}
                                 onChange={(e) => setCurrentTarget(e.target.value)}
                             />
-                            <Button onClick={handleTargetAreaChange}>Add</Button>
+                            <Button onClick={handleTargetAreaChange} sx={{ ml: "7px" }}>Add</Button>
                         </Box>
                         <Box mt={1}>
                             {program.targetArea.map((target, index) => (
@@ -282,7 +323,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                                 }}>
                                     <Chip
                                         key={dayIndex}
-                                        label={`Day ${dayIndex + 1}: ${day.title}`}
+                                        label={`Day ${dayIndex + 1}`}
                                         onDelete={() => deleteDay(weekIndex, dayIndex)}
                                         color="primary"
                                         variant="outlined"
@@ -429,6 +470,11 @@ const AddProgramsDialog = ({ open, onClose }) => {
                     ))}
                 </Box>
             </DialogContent>
+            {/* <DialogActions>
+                <Button onClick={() => onClose()}>Cancel</Button>
+                <Button onClick={handleSubmit} color="primary" variant="contained">Submit</Button>
+            </DialogActions> */}
+
             <DialogActions>
                 <Button onClick={() => onClose()}>Cancel</Button>
                 <Button onClick={handleSubmit} color="primary" variant="contained">Submit</Button>

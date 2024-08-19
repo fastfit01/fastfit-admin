@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Fab, Box, Chip, Card, CardContent, CardMedia } from '@mui/material';
+import { Typography, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Fab, Box, Chip, Card, CardContent, CardMedia, CircularProgress, Dialog, DialogContent } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import Layout from '../components/Layout';
@@ -12,14 +12,21 @@ const Programs = () => {
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
 
   useEffect(() => {
     const fetchPrograms = async () => {
-      const programsData = await getPrograms();
-      setPrograms(programsData);
-
-      console.log("program.programImageUrl=>", programs);
-      
+      setIsLoading(true);
+      try {
+        const programsData = await getPrograms();
+        setPrograms(programsData);
+        console.log("program.programImageUrl=>", programsData);
+      } catch (error) {
+        console.error("Error fetching programs:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetchPrograms();
   }, []);
@@ -33,27 +40,59 @@ const Programs = () => {
     setOpenEditDialog(true);
   };
 
-  const handleDeleteClick = async (programId) => {
+  const handleDeleteClick = async (programCategory, programId) => {
     if (window.confirm('Are you sure you want to delete this program?')) {
-      await deleteProgram(programId);
-      setPrograms(programs.filter(p => p.id !== programId));
+      setIsLoading(true);
+      try {
+        await deleteProgram(programId, programCategory);
+        setPrograms(programs.filter(p => p.id !== programId));
+      } catch (error) {
+        console.error("Error deleting program:", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   const handleAddDialogClose = (newProgram) => {
     setOpenAddDialog(false);
     if (newProgram) {
-      setPrograms([...programs, newProgram]);
+      setIsLoading(true);
+      try {
+        setPrograms([...programs, newProgram]);
+      } catch (error) {
+        console.error("Error adding program:", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
+
   };
 
   const handleEditDialogClose = (updatedProgram) => {
     setOpenEditDialog(false);
     if (updatedProgram) {
-      setPrograms(programs.map(p => p.id === updatedProgram.id ? updatedProgram : p));
+      setIsLoading(true);
+      try {
+        setPrograms(programs.map(p => p.id === updatedProgram.id ? updatedProgram : p));
+      } catch (error) {
+        console.error("Error updating program:", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
     setSelectedProgram(null);
   };
+
+  if (isLoading) {
+    return (
+
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{height: '100vh'}}>
+        <CircularProgress />
+      </Box>
+
+    );
+  }
 
   return (
     <ProtectedRoute>
@@ -109,11 +148,11 @@ const Programs = () => {
                   />
                 </CardContent>
 
-                <ListItemSecondaryAction>
+                <ListItemSecondaryAction sx={{ mr: "30px" }}>
                   <IconButton edge="end" aria-label="edit" onClick={() => handleEditClick(program)}>
                     <EditIcon />
                   </IconButton>
-                  <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteClick(program.id)}>
+                  <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteClick(program.programCategory, program.id)}>
                     <DeleteIcon />
                   </IconButton>
                 </ListItemSecondaryAction>

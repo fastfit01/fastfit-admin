@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Fab, Box, Chip, Card, CardContent, CardMedia } from '@mui/material';
+import { Typography, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Fab, Box, Chip, Card, CardContent, CardMedia, CircularProgress, DialogContent, Dialog } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import Layout from '../components/Layout';
@@ -12,11 +12,14 @@ const Meditations = () => {
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedMeditation, setSelectedMeditation] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchMeditations = async () => {
+      setIsLoading(true);
       const meditationsData = await getMeditations();
       setMeditations(meditationsData);
+      setIsLoading(false);
     };
     fetchMeditations();
   }, []);
@@ -32,8 +35,10 @@ const Meditations = () => {
 
   const handleDeleteClick = async (meditationId) => {
     if (window.confirm('Are you sure you want to delete this meditation?')) {
+      setIsLoading(true);
       await deleteMeditation(meditationId);
       setMeditations(meditations.filter(m => m.id !== meditationId));
+      setIsLoading(false);
     }
   };
 
@@ -51,6 +56,16 @@ const Meditations = () => {
     }
     setSelectedMeditation(null);
   };
+
+  if (isLoading) {
+    return (
+
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{height: '100vh'}}>
+        <CircularProgress />
+      </Box>
+
+    );
+  }
 
   return (
     <ProtectedRoute>
@@ -93,7 +108,7 @@ const Meditations = () => {
                 </CardContent>
 
                 {/* Action Buttons */}
-                <ListItemSecondaryAction>
+                <ListItemSecondaryAction sx={{ mr: "25px" }}>
                   <IconButton edge="end" aria-label="edit" onClick={() => handleEditClick(meditation)}>
                     <EditIcon />
                   </IconButton>

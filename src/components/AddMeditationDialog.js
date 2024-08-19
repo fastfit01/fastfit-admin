@@ -12,11 +12,14 @@ const AddMeditationDialog = ({ open, onClose }) => {
     const [imageUrl, setImageUrl] = useState('');
     const [tags, setTags] = useState([]);
     const [currentTag, setCurrentTag] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (title && duration && category && description && difficulty) {
             try {
+                setIsLoading(!false);
                 const newMeditation = await addMeditation({
                     title,
                     duration: parseInt(duration),
@@ -30,6 +33,8 @@ const AddMeditationDialog = ({ open, onClose }) => {
                 onClose(newMeditation);
             } catch (error) {
                 console.error('Error adding meditation:', error);
+            } finally {
+                setIsLoading(false);
             }
         }
     };
@@ -44,6 +49,15 @@ const AddMeditationDialog = ({ open, onClose }) => {
     const handleDeleteTag = (tagToDelete) => {
         setTags(tags.filter(tag => tag !== tagToDelete));
     };
+
+
+    if (isLoading) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{height: '100vh'}}>
+                <CircularProgress />
+            </Box>
+        );
+    }
 
     return (
         <Dialog open={open} onClose={() => onClose()} maxWidth="sm" fullWidth>
