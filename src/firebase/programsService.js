@@ -254,32 +254,30 @@ import { ref, push, set, get, query, orderByChild, equalTo, remove, update } fro
 
 export const getPrograms = async () => {
     const programsRef = ref(db, 'programs');
-    console.log("Fetching programs from:", programsRef);
-
     const snapshot = await get(programsRef);
-    console.log("Snapshot received:", snapshot.exists());
-
     const programs = [];
-    snapshot.forEach((categorySnapshot) => {
+    
+    if (snapshot.exists()) {
+      snapshot.forEach((categorySnapshot) => {
         const category = categorySnapshot.key;
         categorySnapshot.forEach((programSnapshot) => {
-            programs.push({ 
-                id: programSnapshot.key, 
-                ...programSnapshot.val(),
-                category 
-            });
+          programs.push({ 
+            id: programSnapshot.key, 
+            programCategory: category,
+            ...programSnapshot.val() 
+          });
         });
-    });
-    console.log("Programs fetched:", programs.length);
+      });
+    }
     return programs;
-};
+  };
 
 export const addProgram = async (program) => {
     const categoryRef = ref(db, `programs/${program.programCategory}`);
-    const newProgramRef = push(categoryRef);
+    const newProgramRef = program.id ? ref(db, `programs/${program.programCategory}/${program.id}`) : push(categoryRef);
 
     try {
-        let programImageUrl = '';
+        let programImageUrl = program.programImageUrl || '';
         if (program.programImageFile instanceof File) {
             const imageFileRef = storageRef(storage, `programs/${program.programCategory}/${newProgramRef.key}/programImageUrl/${program.programImageFile.name}`);
             await uploadBytes(imageFileRef, program.programImageFile);
@@ -293,26 +291,36 @@ export const addProgram = async (program) => {
             ...program,
             programImageUrl,
             weeks: processedWeeks,
-            createdAt: Date.now() / 1000,
+            createdAt: program.createdAt || Date.now() / 1000,
         };
 
         delete newProgram.programImageFile;
         delete newProgram.programCategory;  // Remove this as it's now part of the path
 
         await set(newProgramRef, newProgram);
-        console.log("New program added:", newProgramRef.key);
-
-        return { id: newProgramRef.key, ...newProgram, category: program.programCategory };
+ 
+        return { id: newProgramRef.key, ...newProgram, programCategory: program.programCategory };
     } catch (error) {
-        console.error("Error adding program:", error);
+        console.error("Error adding/updating program:", error);
         throw error;
     }
 };
 
 export const updateProgram = async (id, program, oldCategory) => {
-    if (oldCategory !== program.programCategory) {
-        await deleteProgram(id, oldCategory);
-        return addProgram(program);
+    if (oldCategory !== program.programCategory) {     
+        try {
+            const deleted = await deleteProgram(id, oldCategory);
+            if (deleted) {
+                console.log("Program deleted from old category. Adding to new category.");
+            } else {
+                console.log("Program not found in old category. Proceeding with add operation.");
+            }
+
+            return addProgram(program);
+        } catch (error) {
+            console.error("Error during category change process:", error);
+            throw error;
+        }
     }
 
     const programRef = ref(db, `programs/${program.programCategory}/${id}`);
@@ -323,8 +331,7 @@ export const updateProgram = async (id, program, oldCategory) => {
             const imageFileRef = storageRef(storage, `programs/${program.programCategory}/${id}/programImageUrl/${program.programImageFile.name}`);
             await uploadBytes(imageFileRef, program.programImageFile);
             programImageUrl = await getDownloadURL(imageFileRef);
-            console.log("Program image updated:", programImageUrl);
-        }
+         }
 
         const processedWeeks = await processWeeksAndExercises(program.programCategory, id, program.weeks || []);
 
@@ -340,37 +347,44 @@ export const updateProgram = async (id, program, oldCategory) => {
         await update(programRef, updatedProgram);
         console.log("Program updated:", id);
 
-        return { id, ...updatedProgram, category: program.programCategory };
+        return { id, ...updatedProgram, programCategory: program.programCategory };
     } catch (error) {
         console.error("Error updating program:", error);
         throw error;
     }
 };
 
-export const deleteProgram = async (programId, category) => {
-    try {
-        const programRef = ref(db, `programs/${category}/${programId}`);
-        const snapshot = await get(programRef);
-
-        if (snapshot.exists()) {
-            const programData = snapshot.val();
- 
-            if (programData && programData.programImageUrl) {
-                const imageRef = storageRef(storage, programData.programImageUrl);
-                await deleteObject(imageRef);
-            }
-
-            await remove(programRef);
-            console.log("Program deleted:", programId);
-        } else {
-            console.log("Program with the given id not found");
+export const deleteProgram = async (programId, programCategory) => {
+     try {
+      const programRef = ref(db, `programs/${programCategory}/${programId}`);
+      const snapshot = await get(programRef);
+  
+       if (snapshot.exists()) {
+        const programData = snapshot.val();
+         
+        if (programData && programData.programImageUrl) {          
+          const imageRef = storageRef(storage, programData.programImageUrl);
+          try {
+            await deleteObject(imageRef);
+            console.log("Program image deleted successfully");
+          } catch (imageError) {
+            console.warn("Error deleting program image:", imageError);
+           }
         }
+  
+        await remove(programRef);
+        return true;
+      } else {
+        console.log("Program not found.");
+        return false;
+      }
     } catch (error) {
-        console.error("Error deleting program:", error);
+      console.error("Error deleting program:", error);
+      throw error;
     }
-};
+  };
 
-const processWeeksAndExercises = async (category, programId, weeks) => {
+const processWeeksAndExercises = async (programCategory, programId, weeks) => {
     const processedWeeks = [];
 
     for (let weekIndex = 0; weekIndex < weeks.length; weekIndex++) {
@@ -379,8 +393,8 @@ const processWeeksAndExercises = async (category, programId, weeks) => {
 
         for (let dayIndex = 0; dayIndex < week.days.length; dayIndex++) {
             const day = week.days[dayIndex];
-            const processedWarmUp = await processExercises(category, programId, weekIndex, dayIndex, 'warmUp', day.warmUp || []);
-            const processedWorkout = await processExercises(category, programId, weekIndex, dayIndex, 'workout', day.workout || []);
+            const processedWarmUp = await processExercises(programCategory, programId, weekIndex, dayIndex, 'warmUp', day.warmUp || []);
+            const processedWorkout = await processExercises(programCategory, programId, weekIndex, dayIndex, 'workout', day.workout || []);
 
             processedDays.push({
                 ...day,
@@ -398,7 +412,7 @@ const processWeeksAndExercises = async (category, programId, weeks) => {
     return processedWeeks;
 };
 
-const processExercises = async (category, programId, weekIndex, dayIndex, type, exercises) => {
+const processExercises = async (programCategory, programId, weekIndex, dayIndex, type, exercises) => {
     const processedExercises = [];
 
     for (let exerciseIndex = 0; exerciseIndex < exercises.length; exerciseIndex++) {
@@ -406,11 +420,10 @@ const processExercises = async (category, programId, weekIndex, dayIndex, type, 
         let gifUrl = exercise.gifUrl;
 
         if (exercise.gifFile instanceof File) {
-            const gifFileRef = storageRef(storage, `programs/${category}/${programId}/week${weekIndex}/day${dayIndex}/${type}/${exerciseIndex}/${exercise.gifFile.name}`);
+            const gifFileRef = storageRef(storage, `programs/${programCategory}/${programId}/week${weekIndex}/day${dayIndex}/${type}/${exerciseIndex}/${exercise.gifFile.name}`);
             await uploadBytes(gifFileRef, exercise.gifFile);
             gifUrl = await getDownloadURL(gifFileRef);
-            console.log(`Exercise GIF uploaded: ${type}, Week ${weekIndex}, Day ${dayIndex}, Exercise ${exerciseIndex}`);
-        }
+         }
 
         processedExercises.push({
             ...exercise,
@@ -423,8 +436,8 @@ const processExercises = async (category, programId, weekIndex, dayIndex, type, 
     return processedExercises;
 };
 
-export const addWeek = async (programId, category, weekData) => {
-    const programRef = ref(db, `programs/${category}/${programId}`);
+export const addWeek = async (programId, programCategory, weekData) => {
+    const programRef = ref(db, `programs/${programCategory}/${programId}`);
     const snapshot = await get(programRef);
     const program = snapshot.val();
 
@@ -438,14 +451,14 @@ export const addWeek = async (programId, category, weekData) => {
     console.log("Week added to program:", programId);
 };
 
-export const updateWeek = async (programId, category, weekIndex, weekData) => {
-    const weekRef = ref(db, `programs/${category}/${programId}/weeks/${weekIndex}`);
+export const updateWeek = async (programId, programCategory, weekIndex, weekData) => {
+    const weekRef = ref(db, `programs/${programCategory}/${programId}/weeks/${weekIndex}`);
     await update(weekRef, weekData);
     console.log(`Week ${weekIndex} updated in program:`, programId);
 };
 
-export const deleteWeek = async (programId, category, weekIndex) => {
-    const programRef = ref(db, `programs/${category}/${programId}`);
+export const deleteWeek = async (programId, programCategory, weekIndex) => {
+    const programRef = ref(db, `programs/${programCategory}/${programId}`);
     const snapshot = await get(programRef);
     const program = snapshot.val();
 
@@ -455,8 +468,8 @@ export const deleteWeek = async (programId, category, weekIndex) => {
     console.log(`Week ${weekIndex} deleted from program:`, programId);
 };
 
-export const addDay = async (programId, category, weekIndex, dayData) => {
-    const weekRef = ref(db, `programs/${category}/${programId}/weeks/${weekIndex}`);
+export const addDay = async (programId, programCategory, weekIndex, dayData) => {
+    const weekRef = ref(db, `programs/${programCategory}/${programId}/weeks/${weekIndex}`);
     const snapshot = await get(weekRef);
     const week = snapshot.val();
 
@@ -470,14 +483,14 @@ export const addDay = async (programId, category, weekIndex, dayData) => {
     console.log(`Day added to Week ${weekIndex} in program:`, programId);
 };
 
-export const updateDay = async (programId, category, weekIndex, dayIndex, dayData) => {
-    const dayRef = ref(db, `programs/${category}/${programId}/weeks/${weekIndex}/days/${dayIndex}`);
+export const updateDay = async (programId, programCategory, weekIndex, dayIndex, dayData) => {
+    const dayRef = ref(db, `programs/${programCategory}/${programId}/weeks/${weekIndex}/days/${dayIndex}`);
     await update(dayRef, dayData);
     console.log(`Day ${dayIndex} in Week ${weekIndex} updated in program:`, programId);
 };
 
-export const deleteDay = async (programId, category, weekIndex, dayIndex) => {
-    const weekRef = ref(db, `programs/${category}/${programId}/weeks/${weekIndex}`);
+export const deleteDay = async (programId, programCategory, weekIndex, dayIndex) => {
+    const weekRef = ref(db, `programs/${programCategory}/${programId}/weeks/${weekIndex}`);
     const snapshot = await get(weekRef);
     const week = snapshot.val();
 

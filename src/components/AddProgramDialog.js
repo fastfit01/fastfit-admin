@@ -111,38 +111,6 @@ const AddProgramsDialog = ({ open, onClose }) => {
         handleExerciseChange(weekIndex, dayIndex, type, exerciseIndex, 'gifFile', file);
     };
 
-    // const handleSubmit = async (e) => {
-    //     e.preventDefault();
-    //     try {
-    //         const programToSubmit = {
-    //             ...program,
-    //             programImageFile: program.programImageFile,
-    //             weeks: program.weeks.map(week => ({
-    //                 ...week,
-    //                 days: week.days.map(day => ({
-    //                     ...day,
-    //                     warmUp: day.warmUp.map(exercise => ({
-    //                         ...exercise,
-    //                         gifFile: exercise.gifFile
-    //                     })),
-    //                     workout: day.workout.map(exercise => ({
-    //                         ...exercise,
-    //                         gifFile: exercise.gifFile
-    //                     }))
-    //                 }))
-    //             }))
-    //         };
-
-    //         console.log("programToSubmit", programToSubmit);
-
-    //         const newProgram = await addProgram(programToSubmit);
-    //         onClose(newProgram);
-    //     } catch (error) {
-    //         console.error('Error adding program:', error);
-    //     }
-    // };
-
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -243,7 +211,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                             </Select>
                         </FormControl>
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid item xs={6} sx={{mt:"15px"}}>
                         <TextField
                             fullWidth
                             name="guidedOrSelfGuidedProgram"
@@ -269,7 +237,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                                 value={currentTarget}
                                 onChange={(e) => setCurrentTarget(e.target.value)}
                             />
-                            <Button onClick={handleTargetAreaChange}>Add</Button>
+                            <Button onClick={handleTargetAreaChange} sx={{ml:"7px"}}>Add</Button>
                         </Box>
                         <Box mt={1}>
                             {program.targetArea.map((target, index) => (
@@ -339,7 +307,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                                 }}>
                                     <Chip
                                         key={dayIndex}
-                                        label={`Day ${dayIndex + 1}: ${day.title}`}
+                                        label={`Day ${dayIndex + 1}`}
                                         onDelete={() => deleteDay(weekIndex, dayIndex)}
                                         color="primary"
                                         variant="outlined"

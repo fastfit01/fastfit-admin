@@ -33,9 +33,9 @@ const Programs = () => {
     setOpenEditDialog(true);
   };
 
-  const handleDeleteClick = async (programId) => {
-    if (window.confirm('Are you sure you want to delete this program?')) {
-      await deleteProgram(programId);
+  const handleDeleteClick = async (programCategory, programId) => {
+    if (window.confirm('Are you sure you want to delete this program?')) {      
+      await deleteProgram(programId, programCategory);
       setPrograms(programs.filter(p => p.id !== programId));
     }
   };
@@ -121,7 +121,7 @@ const Programs = () => {
                   <IconButton edge="end" aria-label="edit" onClick={() => handleEditClick(program)}>
                     <EditIcon />
                   </IconButton>
-                  <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteClick(program.id)}>
+                  <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteClick(program.programCategory,program.id)}>
                     <DeleteIcon />
                   </IconButton>
                 </ListItemSecondaryAction>

@@ -36,7 +36,7 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
             });
         }
     }, [program]);
-
+    
     if (!editedProgram) return null;
 
     const deleteWeek = (weekIndex) => {
@@ -46,8 +46,8 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
         });
     };
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
+    const handleChange = (e) => {        
+        const { name, value } = e.target;        
         setEditedProgram({ ...editedProgram, [name]: value });
     };
 
@@ -138,8 +138,8 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                     }))
                 }))
             };
-            console.log("programToSubmit", programToSubmit);
-            const newProgram = await addProgram(programToSubmit);
+
+            const newProgram = await updateProgram(programToSubmit.id, programToSubmit, program.programCategory);
             onClose(newProgram);
         } catch (error) {
             console.error('Error adding program:', error);
@@ -164,7 +164,7 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                             <InputLabel sx={{ mt: "-8px" }}>Program category</InputLabel>
                             <Select
                                 name="programCategory"
-                                value={program.category}
+                                value={editedProgram.programCategory}
                                 onChange={handleChange}
                             >
                                 <MenuItem value="atGymWorkouts">At Gym Workouts</MenuItem>
@@ -212,7 +212,7 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                             </Select>
                         </FormControl>
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid item xs={6} sx={{mt:"15px"}}>
                         <TextField
                             fullWidth
                             name="guidedOrSelfGuidedProgram"
@@ -238,7 +238,7 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                                 value={currentTarget}
                                 onChange={(e) => setCurrentTarget(e.target.value)}
                             />
-                            <Button onClick={handleTargetAreaChange}>Add</Button>
+                            <Button onClick={handleTargetAreaChange} sx={{ml:"7px"}}>Add</Button>
                         </Box>
                         <Box mt={1}>
                             {editedProgram?.targetArea?.map((target, index) => (
