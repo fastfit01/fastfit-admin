@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, Typography, Grid, Checkbox, FormControlLabel, IconButton } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, Typography, Grid, Checkbox, FormControlLabel, IconButton, CircularProgress } from '@mui/material';
 import { addProgram, getPrograms, updateProgram } from '../firebase/programsService';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -15,10 +15,13 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
         targetArea: [],
         duration: '',
         weeks: [],
-        programCategory: ''  
+        programCategory: ''
     });
     const [currentTarget, setCurrentTarget] = useState('');
     const [programImageFile, setProgramImageFile] = useState(null);
+
+    const [isLoading, setIsLoading] = useState(false);
+
 
     useEffect(() => {
         if (program) {
@@ -36,7 +39,7 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
             });
         }
     }, [program]);
-    
+
     if (!editedProgram) return null;
 
     const deleteWeek = (weekIndex) => {
@@ -46,8 +49,8 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
         });
     };
 
-    const handleChange = (e) => {        
-        const { name, value } = e.target;        
+    const handleChange = (e) => {
+        const { name, value } = e.target;
         setEditedProgram({ ...editedProgram, [name]: value });
     };
 
@@ -119,6 +122,7 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsLoading(!false);
         try {
             const programToSubmit = {
                 ...editedProgram,
@@ -143,6 +147,8 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
             onClose(newProgram);
         } catch (error) {
             console.error('Error adding program:', error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -154,13 +160,23 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
         });
     };
 
+    if (isLoading) {
+        return (
+
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{height: '100vh'}}>
+                <CircularProgress />
+            </Box>
+
+        );
+    }
+
     return (
         <Dialog open={open} onClose={() => onClose()} maxWidth="lg" fullWidth>
             <DialogTitle>Edit Program</DialogTitle>
             <DialogContent>
                 <Grid container spacing={2} sx={{ "& .MuiGrid-item": { pt: "25px" } }}>
                     <Grid item xs={12} >
-                    <FormControl fullWidth margin="normal">
+                        <FormControl fullWidth margin="normal">
                             <InputLabel sx={{ mt: "-8px" }}>Program category</InputLabel>
                             <Select
                                 name="programCategory"
@@ -212,7 +228,7 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                             </Select>
                         </FormControl>
                     </Grid>
-                    <Grid item xs={6} sx={{mt:"15px"}}>
+                    <Grid item xs={6} sx={{ mt: "15px" }}>
                         <TextField
                             fullWidth
                             name="guidedOrSelfGuidedProgram"
@@ -238,7 +254,7 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                                 value={currentTarget}
                                 onChange={(e) => setCurrentTarget(e.target.value)}
                             />
-                            <Button onClick={handleTargetAreaChange} sx={{ml:"7px"}}>Add</Button>
+                            <Button onClick={handleTargetAreaChange} sx={{ ml: "7px" }}>Add</Button>
                         </Box>
                         <Box mt={1}>
                             {editedProgram?.targetArea?.map((target, index) => (

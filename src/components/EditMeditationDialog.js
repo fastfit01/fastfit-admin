@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, CircularProgress } from '@mui/material';
 import { updateMeditation } from '../firebase/meditationService';
 
 const EditMeditationDialog = ({ open, onClose, meditation }) => {
@@ -25,8 +25,13 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
         }
     }, [meditation]);
 
+    const [isLoading, setIsLoading] = useState(false);
+
+
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsLoading(!false);
         if (title && duration && category && description && difficulty) {
             const updatedMeditation = await updateMeditation(meditation.id, {
                 title,
@@ -39,6 +44,7 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
                 tags
             });
             onClose(updatedMeditation);
+            setIsLoading(false);
         }
     };
 
@@ -52,6 +58,16 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
     const handleDeleteTag = (tagToDelete) => {
         setTags(tags.filter(tag => tag !== tagToDelete));
     };
+
+    if (isLoading) {
+        return (
+
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{height: '100vh'}}>
+                <CircularProgress />
+            </Box>
+
+        );
+    }
 
     return (
         <Dialog open={open} onClose={() => onClose()} maxWidth="sm" fullWidth>

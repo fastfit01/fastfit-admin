@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Box, Typography, Grid } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Box, Typography, Grid, CircularProgress } from '@mui/material';
 import { addMeal } from '../firebase/mealsService';
 import { v4 as uuidv4 } from 'uuid';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -19,6 +19,8 @@ const AddMealsDialog = ({ open, onClose }) => {
     imageFile: null,
   });
 
+  const [isLoading, setIsLoading] = useState(false);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setMeal({ ...meal, [name]: value });
@@ -35,11 +37,12 @@ const AddMealsDialog = ({ open, onClose }) => {
 
   const handleSubmit = async () => {
     const { dietType, mealTime, name, ingredients, instructions, imageFile } = meal;
-    
+
     if (!dietType || !mealTime || !name || !ingredients || !instructions) {
       console.error("Error: Missing required fields");
       return;
     }
+    setIsLoading(!false);
 
     let imageUrl = '';
 
@@ -54,6 +57,8 @@ const AddMealsDialog = ({ open, onClose }) => {
       } catch (error) {
         console.error('Error uploading image:', error);
         return;
+      } finally {
+        setIsLoading(false);
       }
     }
 
@@ -72,6 +77,18 @@ const AddMealsDialog = ({ open, onClose }) => {
       console.error('Error adding meal:', error);
     }
   };
+
+
+  if (isLoading) {
+    return (
+
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{height: '100vh'}}>
+        <CircularProgress />
+      </Box>
+
+    );
+  }
+
 
   return (
     <Dialog open={open} onClose={() => onClose()} maxWidth="md" fullWidth>

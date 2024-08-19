@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, Typography, Grid, Checkbox, FormControlLabel } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, Typography, Grid, Checkbox, FormControlLabel, CircularProgress } from '@mui/material';
 import { addProgram } from '../firebase/programsService';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -19,6 +19,9 @@ const AddProgramsDialog = ({ open, onClose }) => {
     });
 
     const [currentTarget, setCurrentTarget] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -113,6 +116,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsLoading(!false);
         try {
             const programToSubmit = {
                 ...program,
@@ -139,6 +143,8 @@ const AddProgramsDialog = ({ open, onClose }) => {
             onClose(newProgram);
         } catch (error) {
             console.error('Error adding program:', error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -150,6 +156,16 @@ const AddProgramsDialog = ({ open, onClose }) => {
             return { ...prevProgram, weeks: newWeeks };
         });
     };
+
+    if (isLoading) {
+        return (
+
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{height: '100vh'}}>
+                <CircularProgress />
+            </Box>
+
+        );
+    }
 
     return (
         <Dialog open={open} onClose={() => onClose()} maxWidth="lg" fullWidth>
@@ -211,7 +227,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                             </Select>
                         </FormControl>
                     </Grid>
-                    <Grid item xs={6} sx={{mt:"15px"}}>
+                    <Grid item xs={6} sx={{ mt: "15px" }}>
                         <TextField
                             fullWidth
                             name="guidedOrSelfGuidedProgram"
@@ -237,7 +253,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                                 value={currentTarget}
                                 onChange={(e) => setCurrentTarget(e.target.value)}
                             />
-                            <Button onClick={handleTargetAreaChange} sx={{ml:"7px"}}>Add</Button>
+                            <Button onClick={handleTargetAreaChange} sx={{ ml: "7px" }}>Add</Button>
                         </Box>
                         <Box mt={1}>
                             {program.targetArea.map((target, index) => (
