@@ -26,7 +26,6 @@ const Meals = () => {
       const fetchedMeals = await getMeals();
       const flattenedMeals = flattenMealsStructure(fetchedMeals);
       setMeals(flattenedMeals);
-      console.log("meals", flattenedMeals);
     } catch (error) {
       console.error("Error fetching meals:", error);
     } finally {
