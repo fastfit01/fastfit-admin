@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, FormControl, InputLabel, CircularProgress } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, FormControl, InputLabel, CircularProgress, Box } from '@mui/material';
 import { updateMeal, uploadImageAndGetURL } from '../firebase/mealsService';
 
 const EditMealsDialog = ({ open, onClose, meal }) => {
