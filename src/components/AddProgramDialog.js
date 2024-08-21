@@ -470,10 +470,6 @@ const AddProgramsDialog = ({ open, onClose }) => {
                     ))}
                 </Box>
             </DialogContent>
-            {/* <DialogActions>
-                <Button onClick={() => onClose()}>Cancel</Button>
-                <Button onClick={handleSubmit} color="primary" variant="contained">Submit</Button>
-            </DialogActions> */}
 
             <DialogActions>
                 <Button onClick={() => onClose()}>Cancel</Button>

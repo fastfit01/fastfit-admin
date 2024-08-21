@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Grid, Card, CardContent, Typography, CardMedia, Fab, IconButton, Box, CircularProgress } from '@mui/material';
-import { getMeals, deleteMeal } from '../firebase/mealsService';
-import AddMealsDialog from '../components/addMealsDialog';
+import { getMeals, deleteMeal } from '../firebase/mealsService'; // Updated import path
+import AddMealsDialog from '../components/addMealsDialog'; // Note the capitalization
 import EditMealsDialog from '../components/EditMealsDialog';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
@@ -15,17 +15,14 @@ const Meals = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-
     fetchMeals();
-
   }, []);
-
+ 
   const fetchMeals = async () => {
     setIsLoading(true);
     try {
-      const fetchedMeals = await getMeals();
-      const flattenedMeals = flattenMealsStructure(fetchedMeals);
-      setMeals(flattenedMeals);
+      const fetchedMeals = await getMeals();      
+      setMeals(fetchedMeals);
     } catch (error) {
       console.error("Error fetching meals:", error);
     } finally {
@@ -33,28 +30,11 @@ const Meals = () => {
     }
   };
 
-  const flattenMealsStructure = (mealsData) => {
-    const flattened = [];
-    Object.entries(mealsData).forEach(([dietType, dietData]) => {
-      Object.entries(dietData.meals).forEach(([mealTime, mealTimeData]) => {
-        Object.entries(mealTimeData).forEach(([mealId, mealData]) => {
-          flattened.push({
-            id: mealId,
-            dietType,
-            mealTime,
-            ...mealData
-          });
-        });
-      });
-    });
-    return flattened;
-  };
-
   const handleAddMeal = () => {
     setOpenAddDialog(true);
   };
 
-  const handleEditMeal = (meal) => {
+  const handleEditMeal = (meal) => {    
     setSelectedMeal(meal);
     setOpenEditDialog(true);
   };
@@ -63,7 +43,7 @@ const Meals = () => {
     if (window.confirm('Are you sure you want to delete this meal?')) {
       setIsLoading(true);
       try {
-        await deleteMeal(meal.dietType, meal.mealTime, meal.id);
+        await deleteMeal(meal.id, meal.dietType, meal.mealTime);
         await fetchMeals();
       } catch (error) {
         console.error("Error deleting meal:", error);
@@ -73,20 +53,42 @@ const Meals = () => {
     }
   };
 
-  const handleCloseDialog = () => {
+  const handleAddDialogClose = (newMeal) => {  
     setOpenAddDialog(false);
+  
+    if (newMeal) {
+      setIsLoading(true);
+      try {
+        setMeals([...meals, newMeal]);
+      } catch (error) {
+        console.error("Error adding program:", error);
+      }finally{
+        setIsLoading(!true);
+      }   
+    } 
+  };
+
+  const handleEditDialogClose = (updatedMeal) => {
     setOpenEditDialog(false);
+  
+    if (updatedMeal) {
+      setIsLoading(true);
+      try {
+        setMeals(meals.map(m => m.id === updatedMeal.id ? updatedMeal : m));
+      } catch (error) {
+        console.error("Error updating meal:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
     setSelectedMeal(null);
-    fetchMeals();
   };
 
   if (isLoading) {
     return (
-
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{height: '100vh'}}>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{ height: '100vh' }}>
         <CircularProgress />
       </Box>
-
     );
   }
 
@@ -135,12 +137,13 @@ const Meals = () => {
             </Fab>
           </Box>
 
-          <AddMealsDialog open={openAddDialog} onClose={handleCloseDialog} />
+          <AddMealsDialog open={openAddDialog} onClose={handleAddDialogClose} />
           {selectedMeal && (
             <EditMealsDialog
               open={openEditDialog}
-              onClose={handleCloseDialog}
+              onClose={handleEditDialogClose}
               meal={selectedMeal}
+              mealId={selectedMeal.id}
             />
           )}
         </div>

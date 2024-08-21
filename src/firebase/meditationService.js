@@ -54,7 +54,7 @@ export const getMeditations = async () => {
 
 export const updateMeditation = async (id, { title, duration, audioFile, category, description, difficulty, imageUrl, tags }) => {
     const meditationRef = ref(db, `meditations/${id}`);
-    console.log("id=>",id);
+ 
     
     let audioUrl = '';
     let imageDownloadUrl = imageUrl; // Keep the existing image URL if no new file is uploaded
