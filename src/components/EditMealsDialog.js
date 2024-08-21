@@ -1,30 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, FormControl, InputLabel, CircularProgress, Box } from '@mui/material';
-import { updateMeal, uploadImageAndGetURL } from '../firebase/mealsService';
+import { updateMeal, uploadImageAndGetURL } from '../firebase/mealsService'; // Updated import path
 
-const EditMealsDialog = ({ open, onClose, meal }) => {
+const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
   const [editedMeal, setEditedMeal] = useState({
-    name: '',
-    dietType: '',
-    mealTime: '',
-    ingredients: '',
-    instructions: '',
-    imageUrl: '',
+    id: mealId || '',
+    name: meal?.name || '',
+    dietType: meal?.dietType ,
+    mealTime: meal?.mealTime || '',
+    ingredients: meal?.ingredients || '',
+    instructions: meal?.instructions || '',
+    imageUrl: meal?.imageUrl || '',
     imageFile: null
   });
-
-  const [imagePreview, setImagePreview] = useState('');
-
-  useEffect(() => {
-    if (meal) {
-      setEditedMeal(meal);
-      setImagePreview(meal.imageUrl);
-    }
-  }, [meal]);
+  const [imagePreview, setImagePreview] = useState(meal?.imageUrl || '');
 
   const [isLoading, setIsLoading] = useState(false);
-
-
+ 
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -51,35 +43,42 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
     try {
       let updatedMeal = { ...editedMeal };
       if (editedMeal.imageFile) {
-        const imageUrl = await uploadImageAndGetURL(editedMeal.imageFile, `meals/${editedMeal.dietType}/${editedMeal.mealTime}/${editedMeal.id}`);
+        const imageUrl = await uploadImageAndGetURL(
+          editedMeal.imageFile,
+          `meals/${editedMeal.dietType}/${editedMeal.mealTime}/${editedMeal.id || ''}`
+        );
         updatedMeal.imageUrl = imageUrl;
       }
-      await updateMeal(updatedMeal.dietType, updatedMeal.mealTime, updatedMeal.id, updatedMeal);
-      onClose();
+      const newMeal = await updateMeal(
+        updatedMeal.id,
+        updatedMeal,
+        meal?.dietType,
+        meal?.mealTime // Pass the old category for meal updates
+      );
+    
+      onClose(newMeal)
     } catch (error) {
       console.error("Error updating meal:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }; 
 
   if (isLoading) {
     return (
-
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{height: '100vh'}}>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{ height: '100vh' }}>
         <CircularProgress />
       </Box>
-
     );
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={() => onClose()} maxWidth="md" fullWidth>
       <DialogTitle>Edit Meal</DialogTitle>
       <DialogContent>
-        <form onSubmit={handleSubmit}>
+        <form sx={{mt:"10px"}}>
           <FormControl fullWidth margin="normal">
-            <InputLabel sx={{ mt: "-8px" }}>Diet Type</InputLabel>
+            <InputLabel sx={{ mt: "-8px" }} >Diet Type</InputLabel>
             <Select
               name="dietType"
               value={editedMeal.dietType}
@@ -89,7 +88,7 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
               <MenuItem value="Keto">Keto</MenuItem>
               <MenuItem value="Vegan">Vegan</MenuItem>
               <MenuItem value="Vegetarian">Vegetarian</MenuItem>
-              <MenuItem value="Paleo">Paleo</MenuItem>
+              <MenuItem value="Paleo">Paleo</MenuItem>           
             </Select>
           </FormControl>
           <FormControl fullWidth margin="normal">
@@ -116,7 +115,7 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
           <TextField
             fullWidth
             margin="normal"
-            name="Ingredients"
+            name="ingredients"
             label="Ingredients"
             multiline
             rows={4}
@@ -126,7 +125,7 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
           <TextField
             fullWidth
             margin="normal"
-            name="Instructions"
+            name="instructions"
             label="Instructions"
             multiline
             rows={4}
@@ -162,7 +161,7 @@ const EditMealsDialog = ({ open, onClose, meal }) => {
         </form>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={()=>onClose()}>Cancel</Button>
         <Button onClick={handleSubmit} color="primary">
           Save Changes
         </Button>

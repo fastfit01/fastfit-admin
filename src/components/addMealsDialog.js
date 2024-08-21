@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Box, Typography, Grid, CircularProgress } from '@mui/material';
-import { addMeal } from '../firebase/mealsService';
+import { addMeal, uploadImageAndGetURL } from '../firebase/mealsService'; // Updated import path
 import { v4 as uuidv4 } from 'uuid';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-const dietTypes = ['Keto', 'Paleo', 'Snacks', 'Traditional', 'Vegan', 'Vegetarian'];
-const mealTimes = ['breakfast', 'lunch', 'dinner'];
+const dietTypes = ['Keto', 'Paleo', 'Traditional', 'Vegan', 'Vegetarian'];
+const mealTimes = ['breakfast', 'lunch', 'dinner', 'snacks'];
 
 const AddMealsDialog = ({ open, onClose }) => {
   const [meal, setMeal] = useState({
@@ -36,7 +35,7 @@ const AddMealsDialog = ({ open, onClose }) => {
   };
 
   const handleSubmit = async () => {
-    const { dietType, mealTime, name, ingredients, instructions, imageFile } = meal;
+    const { dietType, mealTime, name, ingredients, instructions, imageFile, id } = meal;
 
     if (!dietType || !mealTime || !name || !ingredients || !instructions) {
       console.error("Error: Missing required fields");
@@ -47,58 +46,49 @@ const AddMealsDialog = ({ open, onClose }) => {
     let imageUrl = '';
 
     if (imageFile) {
-      const storage = getStorage();
-      const storagePath = `meals/${dietType}/${mealTime}/${meal.id}/${imageFile.name}`;
-      const imageRef = storageRef(storage, storagePath);
-
-      try {
-        await uploadBytes(imageRef, imageFile);
-        imageUrl = await getDownloadURL(imageRef);
-      } catch (error) {
-        console.error('Error uploading image:', error);
-        return;
-      } finally {
-        setIsLoading(false);
-      }
+      imageUrl = await uploadImageAndGetURL(
+        imageFile,
+        `meals/${dietType}/${mealTime}/${id}`
+      );
     }
 
     const mealData = {
+      id,
       name,
       ingredients,
       instructions,
       imageUrl,
+      dietType,
+      mealTime,
     };
 
     try {
-      await addMeal(dietType, mealTime, mealData);
-      console.log('Meal added successfully');
-      onClose(); // Close the dialog on success
+      const createdMeal = await addMeal(mealData);
+      onClose(createdMeal);
     } catch (error) {
       console.error('Error adding meal:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-
   if (isLoading) {
     return (
-
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{height: '100vh'}}>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{ height: '100vh' }}>
         <CircularProgress />
       </Box>
-
     );
   }
-
 
   return (
     <Dialog open={open} onClose={() => onClose()} maxWidth="md" fullWidth>
       <DialogTitle>Add New Meal</DialogTitle>
       <DialogContent>
-        <Grid container spacing={2}>
+        <Grid container spacing={2} sx={{mt:"10px"}}>
           <Grid item xs={6}>
             <FormControl fullWidth>
-              <InputLabel>Diet Type</InputLabel>
-              <Select
+              <InputLabel sx={{ mt: "-8px" }}>Diet Type</InputLabel>
+              <Select 
                 name="dietType"
                 value={meal.dietType}
                 onChange={handleChange}
@@ -111,7 +101,7 @@ const AddMealsDialog = ({ open, onClose }) => {
           </Grid>
           <Grid item xs={6}>
             <FormControl fullWidth>
-              <InputLabel>Meal Time</InputLabel>
+              <InputLabel sx={{ mt: "-8px" }}>Meal Time</InputLabel>
               <Select
                 name="mealTime"
                 value={meal.mealTime}

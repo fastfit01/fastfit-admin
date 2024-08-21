@@ -53,7 +53,7 @@ const AddMeditationDialog = ({ open, onClose }) => {
 
     if (isLoading) {
         return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{height: '100vh'}}>
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{ height: '100vh' }}>
                 <CircularProgress />
             </Box>
         );
@@ -62,7 +62,11 @@ const AddMeditationDialog = ({ open, onClose }) => {
     return (
         <Dialog open={open} onClose={() => onClose()} maxWidth="sm" fullWidth>
             <DialogTitle>Add New Meditation</DialogTitle>
-            <DialogContent>
+            <DialogContent sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap:"8px"
+            }}>
                 <TextField
                     autoFocus
                     margin="dense"
@@ -81,7 +85,7 @@ const AddMeditationDialog = ({ open, onClose }) => {
                     onChange={(e) => setDuration(e.target.value)}
                 />
                 <FormControl fullWidth margin="dense">
-                    <InputLabel>Category</InputLabel>
+                    <InputLabel sx={{ mt: "-8px" }}>Category</InputLabel>
                     <Select
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
@@ -102,7 +106,7 @@ const AddMeditationDialog = ({ open, onClose }) => {
                     onChange={(e) => setDescription(e.target.value)}
                 />
                 <FormControl fullWidth margin="dense">
-                    <InputLabel>Difficulty</InputLabel>
+                    <InputLabel sx={{ mt: "-8px" }}>Difficulty</InputLabel>
                     <Select
                         value={difficulty}
                         onChange={(e) => setDifficulty(e.target.value)}
