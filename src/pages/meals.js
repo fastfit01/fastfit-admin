@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Grid, Card, CardContent, Typography, CardMedia, Fab, IconButton, Box, CircularProgress } from '@mui/material';
-import { getMeals, deleteMeal } from '../firebase/mealsService'; // Updated import path
+import { getMeals, deleteMeal, updateMeal } from '../firebase/mealsService'; // Updated import path
 import AddMealsDialog from '../components/addMealsDialog'; // Note the capitalization
 import EditMealsDialog from '../components/EditMealsDialog';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -14,21 +14,22 @@ const Meals = () => {
   const [selectedMeal, setSelectedMeal] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    fetchMeals();
-  }, []);
- 
   const fetchMeals = async () => {
     setIsLoading(true);
     try {
-      const fetchedMeals = await getMeals();      
-      setMeals(fetchedMeals);
+      const fetchedMeals = await getMeals();
+       setMeals(fetchedMeals);
     } catch (error) {
       console.error("Error fetching meals:", error);
     } finally {
       setIsLoading(false);
     }
   };
+  
+  useEffect(() => {
+    fetchMeals();
+  }, []);
+ 
 
   const handleAddMeal = () => {
     setOpenAddDialog(true);
@@ -68,13 +69,13 @@ const Meals = () => {
     } 
   };
 
-  const handleEditDialogClose = (updatedMeal) => {
+  const handleEditDialogClose = async (updatedMeal) => {
     setOpenEditDialog(false);
   
     if (updatedMeal) {
       setIsLoading(true);
       try {
-        setMeals(meals.map(m => m.id === updatedMeal.id ? updatedMeal : m));
+         await fetchMeals(); // Refresh the meals list
       } catch (error) {
         console.error("Error updating meal:", error);
       } finally {
@@ -106,10 +107,7 @@ const Meals = () => {
                       height="140"
                       image={meal.imageUrl}
                       alt={meal.name}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = '/placeholder-image.jpg'; // Replace with your placeholder image path
-                      }}
+                      
                     />
                   )}
                   <CardContent>
@@ -144,6 +142,7 @@ const Meals = () => {
               onClose={handleEditDialogClose}
               meal={selectedMeal}
               mealId={selectedMeal.id}
+              key={selectedMeal.id} 
             />
           )}
         </div>
