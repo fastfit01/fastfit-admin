@@ -1,12 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, FormControl, InputLabel, CircularProgress, Box } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, FormControl, InputLabel, CircularProgress, Box, Grid } from '@mui/material';
 import { updateMeal, uploadImageAndGetURL } from '../firebase/mealsService'; // Updated import path
 
 const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
+  const initialDietTypes = ['Keto', 'Paleo', 'Traditional', 'Vegan', 'Vegetarian'];
+  const [dietTypes, setDietTypes] = useState(initialDietTypes);
+  const [newDietType, setNewDietType] = useState('');
+
   const [editedMeal, setEditedMeal] = useState({
     id: mealId || '',
     name: meal?.name || '',
-    dietType: meal?.dietType ,
+    dietType: meal?.dietType,
     mealTime: meal?.mealTime || '',
     ingredients: meal?.ingredients || '',
     instructions: meal?.instructions || '',
@@ -14,9 +18,26 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
     imageFile: null
   });
   const [imagePreview, setImagePreview] = useState(meal?.imageUrl || '');
-
   const [isLoading, setIsLoading] = useState(false);
- 
+
+  useEffect(() => {
+     if (meal && meal.dietType && !dietTypes.includes(meal.dietType)) {
+      setDietTypes(prevTypes => [...new Set([...prevTypes, meal.dietType])]);
+    }
+    setEditedMeal(prevState => ({
+      ...prevState,
+      id: meal?.id || '',
+      name: meal?.name || '',
+      dietType: meal?.dietType || '',
+      mealTime: meal?.mealTime || '',
+      ingredients: meal?.ingredients || '',
+      instructions: meal?.instructions || '',
+      imageUrl: meal?.imageUrl || '',
+      imageFile: null // Reset imageFile when meal changes
+    }));
+    setImagePreview(meal?.imageUrl || '');
+  }, [meal, dietTypes]);
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -31,21 +52,22 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
     if (file) {
       setEditedMeal(prevState => ({
         ...prevState,
-        imageFile: file
+        imageFile: file,
+        imageUrl: '' // Clear the imageUrl when a new file is selected
       }));
-      setImagePreview(URL.createObjectURL(file)); // Update the image preview with the selected file
+      setImagePreview(URL.createObjectURL(file));
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(!false);
+    setIsLoading(true);
     try {
       let updatedMeal = { ...editedMeal };
-      if (editedMeal.imageFile) {
+      if (updatedMeal.imageFile) {
         const imageUrl = await uploadImageAndGetURL(
-          editedMeal.imageFile,
-          `meals/${editedMeal.dietType}/${editedMeal.mealTime}/${editedMeal.id || ''}`
+          updatedMeal.imageFile,
+          `meals/${updatedMeal.dietType}/meals/${updatedMeal.mealTime}/${updatedMeal.id || ''}`
         );
         updatedMeal.imageUrl = imageUrl;
       }
@@ -53,16 +75,26 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
         updatedMeal.id,
         updatedMeal,
         meal?.dietType,
-        meal?.mealTime // Pass the old category for meal updates
+        meal?.mealTime
       );
-    
-      onClose(newMeal)
+      onClose(newMeal);
     } catch (error) {
       console.error("Error updating meal:", error);
     } finally {
       setIsLoading(false);
     }
-  }; 
+  };
+
+  const handleAddDietTypeClick = () => {
+    if (newDietType && !dietTypes.includes(newDietType)) {
+      setDietTypes(prevTypes => [...new Set([...prevTypes, newDietType])]);
+      setEditedMeal(prevState => ({
+        ...prevState,
+        dietType: newDietType
+      }));
+      setNewDietType('');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -76,21 +108,38 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
     <Dialog open={open} onClose={() => onClose()} maxWidth="md" fullWidth>
       <DialogTitle>Edit Meal</DialogTitle>
       <DialogContent>
-        <form sx={{mt:"10px"}}>
-          <FormControl fullWidth margin="normal">
-            <InputLabel sx={{ mt: "-8px" }} >Diet Type</InputLabel>
-            <Select
-              name="dietType"
-              value={editedMeal.dietType}
-              onChange={handleChange}
-            >
-              <MenuItem value="Traditional">Traditional</MenuItem>
-              <MenuItem value="Keto">Keto</MenuItem>
-              <MenuItem value="Vegan">Vegan</MenuItem>
-              <MenuItem value="Vegetarian">Vegetarian</MenuItem>
-              <MenuItem value="Paleo">Paleo</MenuItem>           
-            </Select>
-          </FormControl>
+        <form sx={{ mt: "10px" }}>
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <FormControl fullWidth margin="normal">
+                <InputLabel sx={{ mt: "-8px" }}>Diet Type</InputLabel>
+                <Select
+                  name="dietType"
+                  value={editedMeal.dietType}
+                  onChange={handleChange}
+                >
+                  {dietTypes.map((type) => (
+                    <MenuItem key={type} value={type}>
+                      {type}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                margin="normal"
+                name="newDietType"
+                label="Add New Diet Type"
+                value={newDietType}
+                onChange={(e) => setNewDietType(e.target.value)}
+              />
+              <Button onClick={handleAddDietTypeClick} variant="outlined" fullWidth sx={{ mt: 2 }}>
+                Add Diet Type
+              </Button>
+            </Grid>
+          </Grid>
           <FormControl fullWidth margin="normal">
             <InputLabel sx={{ mt: "-8px" }}>Meal Time</InputLabel>
             <Select
@@ -141,7 +190,7 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
             onChange={handleChange}
             disabled
           />
-          <Button variant="contained" component="label">
+           <Button variant="contained" component="label">
             Upload Image
             <input type="file" hidden onChange={handleFileChange} accept="image/*" />
           </Button>
@@ -151,17 +200,13 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
                 src={imagePreview}
                 alt="Meal Preview"
                 style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = '/placeholder-image.jpg'; // Replace with your placeholder image path
-                }}
               />
             </div>
           )}
         </form>
       </DialogContent>
       <DialogActions>
-        <Button onClick={()=>onClose()}>Cancel</Button>
+        <Button onClick={() => onClose()}>Cancel</Button>
         <Button onClick={handleSubmit} color="primary">
           Save Changes
         </Button>

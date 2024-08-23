@@ -1,9 +1,24 @@
-import React, { useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Box, Typography, Grid, CircularProgress } from '@mui/material';
-import { addMeal, uploadImageAndGetURL } from '../firebase/mealsService'; // Updated import path
+import React, { useEffect, useState } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl,
+  Box,
+  Typography,
+  Grid,
+  CircularProgress
+} from '@mui/material';
+import { addMeal, getAllDietTypes, uploadImageAndGetURL } from '../firebase/mealsService'; // Updated import path
 import { v4 as uuidv4 } from 'uuid';
 
-const dietTypes = ['Keto', 'Paleo', 'Traditional', 'Vegan', 'Vegetarian'];
+const initialDietTypes = ['Keto', 'Paleo', 'Traditional', 'Vegan', 'Vegetarian'];
 const mealTimes = ['breakfast', 'lunch', 'dinner', 'snacks'];
 
 const AddMealsDialog = ({ open, onClose }) => {
@@ -18,7 +33,23 @@ const AddMealsDialog = ({ open, onClose }) => {
     imageFile: null,
   });
 
+  const [dietTypes, setDietTypes] = useState(initialDietTypes);
+  const [newDietType, setNewDietType] = useState('');
+  const [isAddingDietType, setIsAddingDietType] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+
+  useEffect(() => {
+    const fetchDietTypes = async () => {
+      try {
+        const types = await getAllDietTypes();
+        setDietTypes(prevTypes => [...new Set([...prevTypes, ...types])]);
+      } catch (error) {
+        console.error("Error fetching diet types:", error);
+      }
+    };
+    fetchDietTypes();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -34,6 +65,19 @@ const AddMealsDialog = ({ open, onClose }) => {
     });
   };
 
+  const handleAddDietTypeClick = () => {
+    setIsAddingDietType(true);
+  };
+
+  const handleAddNewDietType = () => {
+    if (newDietType.trim() !== '' && !dietTypes.includes(newDietType)) {
+      setDietTypes([...dietTypes, newDietType]);
+      setMeal({ ...meal, dietType: newDietType });
+      setNewDietType('');
+    }
+    setIsAddingDietType(false);
+  };
+
   const handleSubmit = async () => {
     const { dietType, mealTime, name, ingredients, instructions, imageFile, id } = meal;
 
@@ -41,7 +85,7 @@ const AddMealsDialog = ({ open, onClose }) => {
       console.error("Error: Missing required fields");
       return;
     }
-    setIsLoading(!false);
+    setIsLoading(true);
 
     let imageUrl = '';
 
@@ -84,11 +128,11 @@ const AddMealsDialog = ({ open, onClose }) => {
     <Dialog open={open} onClose={() => onClose()} maxWidth="md" fullWidth>
       <DialogTitle>Add New Meal</DialogTitle>
       <DialogContent>
-        <Grid container spacing={2} sx={{mt:"10px"}}>
+        <Grid container spacing={2} sx={{ mt: "10px" }}>
           <Grid item xs={6}>
             <FormControl fullWidth>
               <InputLabel sx={{ mt: "-8px" }}>Diet Type</InputLabel>
-              <Select 
+              <Select
                 name="dietType"
                 value={meal.dietType}
                 onChange={handleChange}
@@ -99,6 +143,24 @@ const AddMealsDialog = ({ open, onClose }) => {
               </Select>
             </FormControl>
           </Grid>
+          <Grid item xs={6}>
+            <Button onClick={handleAddDietTypeClick} variant="outlined" fullWidth sx={{ mt: 2 }}>
+              Add Diet Type
+            </Button>
+          </Grid>
+          {isAddingDietType && (
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="New Diet Type"
+                value={newDietType}
+                onChange={(e) => setNewDietType(e.target.value)}
+              />
+              <Button onClick={handleAddNewDietType} variant="contained" sx={{ mt: 2 }}>
+                Add New Diet Type
+              </Button>
+            </Grid>
+          )}
           <Grid item xs={6}>
             <FormControl fullWidth>
               <InputLabel sx={{ mt: "-8px" }}>Meal Time</InputLabel>
