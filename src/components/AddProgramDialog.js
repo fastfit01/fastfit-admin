@@ -136,15 +136,13 @@ const AddProgramsDialog = ({ open, onClose }) => {
                     }))
                 }))
             };
-
-            console.log("programToSubmit", programToSubmit);
-
             const newProgram = await addProgram(programToSubmit);
             onClose(newProgram);
         } catch (error) {
             console.error('Error adding program:', error);
         } finally {
             setIsLoading(false);
+            setProgram("");
         }
     };
 

@@ -22,7 +22,7 @@ export const getMeals = async () => {
   if (snapshot.exists()) {
     snapshot.forEach((dietTypeSnapshot) => {
       const dietType = dietTypeSnapshot.key;
-      dietTypeSnapshot.child('meals').forEach((mealTimeSnapshot) => {
+      dietTypeSnapshot.child('mealsData').forEach((mealTimeSnapshot) => {
         const mealTime = mealTimeSnapshot.key;
         mealTimeSnapshot.forEach((mealSnapshot) => {
           const mealData = mealSnapshot.val();
@@ -47,12 +47,12 @@ export const getMeals = async () => {
 // Function to add a new meal
 export const addMeal = async (meal) => {
   const mealId = meal.id || uuidv4(); // Generate a new UUID if ID is not provided
-  const mealRef = ref(db, `meals/${meal.dietType}/meals/${meal.mealTime}/${mealId}`);
+  const mealRef = ref(db, `meals/${meal.dietType}/mealsData/${meal.mealTime}/${mealId}`);
 
   try {
     let mealImageUrl = meal.imageUrl || '';
     if (meal.imageFile instanceof File) {
-      const imageFileRef = storageRef(storage, `meals/${meal.dietType}/meals/${meal.mealTime}/${mealId}/imageUrl/${meal.imageFile.name}`);
+      const imageFileRef = storageRef(storage, `meals/${meal.dietType}/mealsData/${meal.mealTime}/${mealId}/imageUrl/${meal.imageFile.name}`);
       await uploadBytes(imageFileRef, meal.imageFile);
       mealImageUrl = await getDownloadURL(imageFileRef);
     }
@@ -79,7 +79,7 @@ export const updateMeal = async (id, meal, oldCategory, oldMealTime) => {
   try {
     let mealImageUrl = meal.imageUrl;
     if (meal.imageFile instanceof File) {
-      const imageFileRef = storageRef(storage, `meals/${meal.dietType}/meals/${meal.mealTime}/${id}/imageUrl/${meal.imageFile.name}`);
+      const imageFileRef = storageRef(storage, `meals/${meal.dietType}/mealsData/${meal.mealTime}/${id}/imageUrl/${meal.imageFile.name}`);
       await uploadBytes(imageFileRef, meal.imageFile);
       mealImageUrl = await getDownloadURL(imageFileRef);
     }
@@ -89,7 +89,7 @@ export const updateMeal = async (id, meal, oldCategory, oldMealTime) => {
     };
     delete updatedMeal.imageFile;
 
-    const oldMealRef = ref(db, `meals/${oldCategory}/meals/${oldMealTime}/${id}`);
+    const oldMealRef = ref(db, `meals/${oldCategory}/mealsData/${oldMealTime}/${id}`);
     const oldMealSnapshot = await get(oldMealRef);
 
     if (!oldMealSnapshot.exists()) {
@@ -101,7 +101,7 @@ export const updateMeal = async (id, meal, oldCategory, oldMealTime) => {
       await remove(oldMealRef);
       await addMeal({ ...meal, id });
     } else {
-      const mealRef = ref(db, `meals/${meal.dietType}/meals/${meal.mealTime}/${id}`);
+      const mealRef = ref(db, `meals/${meal.dietType}/mealsData/${meal.mealTime}/${id}`);
       await update(mealRef, updatedMeal);
     }
     return { id, ...updatedMeal, dietType: meal.dietType, mealTime: meal.mealTime };
@@ -114,7 +114,7 @@ export const updateMeal = async (id, meal, oldCategory, oldMealTime) => {
 // Function to delete a meal
 export const deleteMeal = async (mealId, mealCategory, mealTime) => {
   try {
-    const mealRef = ref(db, `meals/${mealCategory}/meals/${mealTime}/${mealId}`);
+    const mealRef = ref(db, `meals/${mealCategory}/mealsData/${mealTime}/${mealId}`);
     const snapshot = await get(mealRef);
 
     if (snapshot.exists()) {
