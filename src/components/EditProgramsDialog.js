@@ -25,16 +25,26 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
 
     useEffect(() => {
         if (program) {
-            const weeksArray = program?.weeks
-                ? program.weeks.map(week => ({
+            const weeksArray = Array.isArray(program.weeks)
+                ? program.weeks
+                : Object.values(program.weeks);
+    
+            const processedWeeks = weeksArray.map(week => {
+                
+                const daysArray = Array.isArray(week.days)
+                    ? week.days
+                    : Object.values(week.days);
+                
+     
+                return {
                     ...week,
-                    days: week?.days ? week.days.map(day => ({ ...day })) : []
-                }))
-                : [];
-
+                    days: daysArray.map(day => ({ ...day }))
+                };
+            });
+        
             setEditedProgram({
                 ...program,
-                weeks: weeksArray,
+                weeks: processedWeeks,
                 programImageUrl: program.programImageUrl || ''
             });
         }

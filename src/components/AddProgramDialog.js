@@ -21,8 +21,6 @@ const AddProgramsDialog = ({ open, onClose }) => {
     const [currentTarget, setCurrentTarget] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-
-
     const handleChange = (e) => {
         const { name, value } = e.target;
         setProgram({ ...program, [name]: value });
@@ -34,7 +32,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
             return { ...prevProgram, weeks: newWeeks };
         });
     };
-
+ 
     const handleTargetAreaChange = () => {
         if (currentTarget && !program.targetArea.includes(currentTarget)) {
             setProgram({ ...program, targetArea: [...program.targetArea, currentTarget] });
@@ -138,6 +136,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
             };
             const newProgram = await addProgram(programToSubmit);
             onClose(newProgram);
+           
         } catch (error) {
             console.error('Error adding program:', error);
         } finally {
@@ -254,7 +253,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                             <Button onClick={handleTargetAreaChange} sx={{ ml: "7px" }}>Add</Button>
                         </Box>
                         <Box mt={1}>
-                            {program.targetArea.map((target, index) => (
+                            {program?.targetArea?.map((target, index) => (
                                 <Chip
                                     key={index}
                                     label={target}
@@ -298,7 +297,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
 
                 <Box mt={4}>
                     <Button onClick={addWeek}>Add Week</Button>
-                    {program.weeks.map((week, weekIndex) => (
+                    {program?.weeks?.map((week, weekIndex) => (
                         <Box key={weekIndex} mt={2}>
                             <Box display="flex" alignItems="center">
                                 <Chip
@@ -315,7 +314,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                                 />
                             </Box>
                             <Button onClick={() => addDay(weekIndex)}>Add Day</Button>
-                            {week.days.map((day, dayIndex) => (
+                            {week?.days?.map((day, dayIndex) => (
                                 <Box key={dayIndex} mt={2} border={1} borderColor="grey.300" p={2} sx={{
                                     "& .MuiTextField-root": { margin: '6px' }
                                 }}>
@@ -363,7 +362,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                                     {/* Warm-up Exercises */}
                                     <Typography variant="subtitle2">Warm-up Exercises</Typography>
                                     <Button onClick={() => addExercise(weekIndex, dayIndex, 'warmUp')}>Add Warm-up Exercise</Button>
-                                    {day.warmUp.map((exercise, exerciseIndex) => (
+                                    {day?.warmUp?.map((exercise, exerciseIndex) => (
                                         <Box key={exerciseIndex} mt={1} sx={{
                                             display: 'flex',
                                             justifyContent: 'space-between',
