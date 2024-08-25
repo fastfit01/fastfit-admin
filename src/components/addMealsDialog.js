@@ -15,7 +15,7 @@ import {
   Grid,
   CircularProgress
 } from '@mui/material';
-import { addMeal, getAllDietTypes, uploadImageAndGetURL } from '../firebase/mealsService'; // Updated import path
+import { addMeal, getAllDietTypes, uploadImageAndGetURL, updateDietTypeCoverImage } from '../firebase/mealsService';
 import { v4 as uuidv4 } from 'uuid';
 
 const initialDietTypes = ['Keto', 'Paleo', 'Traditional', 'Vegan', 'Vegetarian'];
@@ -31,19 +31,20 @@ const AddMealsDialog = ({ open, onClose }) => {
     instructions: '',
     imageUrl: null,
     imageFile: null,
+    mealDuration: ''
   });
 
-  const [dietTypes, setDietTypes] = useState(initialDietTypes);
+  const [dietTypes, setDietTypes] = useState([]);
   const [newDietType, setNewDietType] = useState('');
   const [isAddingDietType, setIsAddingDietType] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
+  const [dietTypeCoverImage, setDietTypeCoverImage] = useState(null);
 
   useEffect(() => {
     const fetchDietTypes = async () => {
       try {
         const types = await getAllDietTypes();
-        setDietTypes(prevTypes => [...new Set([...prevTypes, ...types])]);
+        setDietTypes(types);
       } catch (error) {
         console.error("Error fetching diet types:", error);
       }
@@ -54,6 +55,10 @@ const AddMealsDialog = ({ open, onClose }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setMeal({ ...meal, [name]: value });
+    if (name === 'dietType') {
+      const selectedDietType = dietTypes.find(dt => dt.name === value);
+      setDietTypeCoverImage(selectedDietType ? selectedDietType.imageUrl : null);
+    }
   };
 
   const handleImageUpload = (e) => {
@@ -65,13 +70,30 @@ const AddMealsDialog = ({ open, onClose }) => {
     });
   };
 
+  const handleDietTypeImageUpload = async (e) => {
+    const file = e.target.files[0];
+    setIsLoading(true);
+    try {
+      const imageUrl = await updateDietTypeCoverImage(meal.dietType, file);
+      setDietTypeCoverImage(imageUrl);
+      // Update the dietTypes state to reflect the new image URL
+      setDietTypes(prevTypes => prevTypes.map(dt =>
+        dt.name === meal.dietType ? { ...dt, imageUrl } : dt
+      ));
+    } catch (error) {
+      console.error("Error uploading diet type cover image:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleAddDietTypeClick = () => {
     setIsAddingDietType(true);
   };
 
   const handleAddNewDietType = () => {
-    if (newDietType.trim() !== '' && !dietTypes.includes(newDietType)) {
-      setDietTypes([...dietTypes, newDietType]);
+    if (newDietType.trim() !== '' && !dietTypes.some(dt => dt.name === newDietType)) {
+      setDietTypes([...dietTypes, { name: newDietType, imageUrl: '' }]);
       setMeal({ ...meal, dietType: newDietType });
       setNewDietType('');
     }
@@ -79,7 +101,7 @@ const AddMealsDialog = ({ open, onClose }) => {
   };
 
   const handleSubmit = async () => {
-    const { dietType, mealTime, name, ingredients, instructions, imageFile, id } = meal;
+    const { dietType, mealTime, name, ingredients, instructions, imageFile, id, mealDuration } = meal;
 
     if (!dietType || !mealTime || !name || !ingredients || !instructions) {
       console.error("Error: Missing required fields");
@@ -104,6 +126,7 @@ const AddMealsDialog = ({ open, onClose }) => {
       imageUrl,
       dietType,
       mealTime,
+      mealDuration
     };
 
     try {
@@ -137,9 +160,10 @@ const AddMealsDialog = ({ open, onClose }) => {
                 name="dietType"
                 value={meal.dietType}
                 onChange={handleChange}
+                disabled={dietTypes.length === 0}
               >
                 {dietTypes.map((type) => (
-                  <MenuItem key={type} value={type}>{type}</MenuItem>
+                  <MenuItem key={type.name} value={type.name}>{type.name}</MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -207,29 +231,68 @@ const AddMealsDialog = ({ open, onClose }) => {
               onChange={handleChange}
             />
           </Grid>
+
           <Grid item xs={12}>
-            <input
-              accept="image/*"
-              style={{ display: 'none' }}
-              id="meal-image-upload"
-              type="file"
-              onChange={handleImageUpload}
+            <TextField
+              fullWidth
+              multiline
+              margin="normal"
+              name="mealDuration"
+              label="Meal Duration"
+              value={meal.mealDuration}
+              onChange={handleChange}
             />
-            <label htmlFor="meal-image-upload">
-              <Button variant="contained" component="span">
-                Upload Image
-              </Button>
-            </label>
-            {meal.imageUrl && (
-              <Box mt={2}>
-                <Typography variant="subtitle2">Image Preview:</Typography>
-                <img
-                  src={meal.imageUrl}
-                  alt="Meal preview"
-                  style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }}
-                />
-              </Box>
-            )}
+          </Grid>
+          <Grid item xs={12} sx={{ display: "flex" }}>
+            <Grid item xs={6}>
+              <input
+                accept="image/*"
+                style={{ display: 'none' }}
+                id="meal-image-upload"
+                type="file"
+                onChange={handleImageUpload}
+              />
+              <label htmlFor="meal-image-upload">
+                <Button variant="contained" component="span">
+                  Upload Meal Image
+                </Button>
+              </label>
+              {meal.imageUrl && (
+                <Box mt={2}>
+                  <Typography variant="subtitle2">Meal Image Preview:</Typography>
+                  <img
+                    src={meal.imageUrl}
+                    alt="Meal preview"
+                    style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }}
+                  />
+                </Box>
+              )}
+            </Grid>
+            <Grid item xs={6}>
+              <input
+                accept="image/*"
+                style={{ display: 'none' }}
+                id="diet-cover-image-upload"
+                type="file"
+                onChange={handleDietTypeImageUpload}
+                disabled={!meal.dietType}
+              />
+              <label htmlFor="diet-cover-image-upload">
+                <Button variant="contained" component="span" disabled={!meal.dietType}>
+                  Upload Diet Cover Image
+                </Button>
+              </label>
+              {dietTypeCoverImage && (
+                <Box mt={2}>
+                  <Typography variant="subtitle2">Diet Type Cover Image:</Typography>
+                  <img
+                    src={dietTypeCoverImage}
+                    alt="Diet Cover image"
+                    style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }}
+                  />
+                </Box>
+              )}
+            </Grid>
           </Grid>
         </Grid>
       </DialogContent>
