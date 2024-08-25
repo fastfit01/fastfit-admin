@@ -1,29 +1,41 @@
 import React, { useEffect, useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, FormControl, InputLabel, CircularProgress, Box, Grid } from '@mui/material';
-import { updateMeal, uploadImageAndGetURL } from '../firebase/mealsService'; // Updated import path
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, FormControl, InputLabel, CircularProgress, Box, Grid, Typography } from '@mui/material';
+import { updateMeal, uploadImageAndGetURL, getAllDietTypes, updateDietTypeCoverImage } from '../firebase/mealsService';
 
 const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
-  const initialDietTypes = ['Keto', 'Paleo', 'Traditional', 'Vegan', 'Vegetarian'];
-  const [dietTypes, setDietTypes] = useState(initialDietTypes);
+  const [dietTypes, setDietTypes] = useState([]);
   const [newDietType, setNewDietType] = useState('');
+  const [dietTypeCoverImage, setDietTypeCoverImage] = useState(null);
 
   const [editedMeal, setEditedMeal] = useState({
     id: mealId || '',
     name: meal?.name || '',
-    dietType: meal?.dietType,
+    dietType: meal?.dietType || '',
     mealTime: meal?.mealTime || '',
     ingredients: meal?.ingredients || '',
     instructions: meal?.instructions || '',
     imageUrl: meal?.imageUrl || '',
-    imageFile: null
+    imageFile: null,
+    mealDuration: meal?.mealDuration || ''
   });
   const [imagePreview, setImagePreview] = useState(meal?.imageUrl || '');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-     if (meal && meal.dietType && !dietTypes.includes(meal.dietType)) {
-      setDietTypes(prevTypes => [...new Set([...prevTypes, meal.dietType])]);
-    }
+    const fetchDietTypes = async () => {
+      try {
+        const types = await getAllDietTypes();
+        setDietTypes(types);
+        if (meal?.dietType) {
+          const selectedDietType = types.find(dt => dt.name === meal.dietType);
+          setDietTypeCoverImage(selectedDietType ? selectedDietType.imageUrl : null);
+        }
+      } catch (error) {
+        console.error("Error fetching diet types:", error);
+      }
+    };
+    fetchDietTypes();
+
     setEditedMeal(prevState => ({
       ...prevState,
       id: meal?.id || '',
@@ -33,11 +45,11 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
       ingredients: meal?.ingredients || '',
       instructions: meal?.instructions || '',
       imageUrl: meal?.imageUrl || '',
-      imageFile: null // Reset imageFile when meal changes
+      imageFile: null,
+      mealDuration:meal?.mealDuration || ''
     }));
     setImagePreview(meal?.imageUrl || '');
-  }, [meal, dietTypes]);
-
+  }, [meal]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -45,6 +57,10 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
       ...prevState,
       [name]: value
     }));
+    if (name === 'dietType') {
+      const selectedDietType = dietTypes.find(dt => dt.name === value);
+      setDietTypeCoverImage(selectedDietType ? selectedDietType.imageUrl : null);
+    }
   };
 
   const handleFileChange = (e) => {
@@ -53,9 +69,27 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
       setEditedMeal(prevState => ({
         ...prevState,
         imageFile: file,
-        imageUrl: '' // Clear the imageUrl when a new file is selected
+        imageUrl: ''
       }));
       setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleDietTypeCoverImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (file && editedMeal.dietType) {
+      setIsLoading(true);
+      try {
+        const imageUrl = await updateDietTypeCoverImage(editedMeal.dietType, file);
+        setDietTypeCoverImage(imageUrl);
+        setDietTypes(prevTypes => prevTypes.map(dt => 
+          dt.name === editedMeal.dietType ? { ...dt, imageUrl } : dt
+        ));
+      } catch (error) {
+        console.error("Error uploading diet type cover image:", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -82,17 +116,19 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
       console.error("Error updating meal:", error);
     } finally {
       setIsLoading(false);
+      
     }
   };
 
   const handleAddDietTypeClick = () => {
-    if (newDietType && !dietTypes.includes(newDietType)) {
-      setDietTypes(prevTypes => [...new Set([...prevTypes, newDietType])]);
+    if (newDietType && !dietTypes.some(dt => dt.name === newDietType)) {
+      setDietTypes(prevTypes => [...prevTypes, { name: newDietType, imageUrl: '' }]);
       setEditedMeal(prevState => ({
         ...prevState,
         dietType: newDietType
       }));
       setNewDietType('');
+      setDietTypeCoverImage(null);
     }
   };
 
@@ -119,8 +155,8 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
                   onChange={handleChange}
                 >
                   {dietTypes.map((type) => (
-                    <MenuItem key={type} value={type}>
-                      {type}
+                    <MenuItem key={type.name} value={type.name}>
+                      {type.name}
                     </MenuItem>
                   ))}
                 </Select>
@@ -184,25 +220,49 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
           <TextField
             fullWidth
             margin="normal"
-            name="imageUrl"
-            label="Image URL"
-            value={editedMeal.imageUrl}
+            name="mealDuration"
+            label="Meal Duration"
+            value={editedMeal.mealDuration}
             onChange={handleChange}
-            disabled
           />
-           <Button variant="contained" component="label">
-            Upload Image
-            <input type="file" hidden onChange={handleFileChange} accept="image/*" />
-          </Button>
-          {imagePreview && (
-            <div style={{ marginTop: '16px', textAlign: 'center' }}>
-              <img
-                src={imagePreview}
-                alt="Meal Preview"
-                style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
-              />
-            </div>
-          )}
+          <Grid container spacing={2} sx={{ mt: 2 }}>
+            <Grid item xs={6}>
+              <Button variant="contained" component="label">
+                Upload Meal Image
+                <input type="file" hidden onChange={handleFileChange} accept="image/*" />
+              </Button>
+              {imagePreview && (
+                <Box mt={2}>
+                  <Typography variant="subtitle2">Meal Image Preview:</Typography>
+                  <img
+                    src={imagePreview}
+                    alt="Meal Preview"
+                    style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
+                  />
+                </Box>
+              )}
+            </Grid>
+            <Grid item xs={6}>
+              <Button
+                variant="contained"
+                component="label"
+                disabled={!editedMeal.dietType}
+              >
+                Upload Diet Type Cover Image
+                <input type="file" hidden onChange={handleDietTypeCoverImageUpload} accept="image/*" />
+              </Button>
+              {dietTypeCoverImage && (
+                <Box mt={2}>
+                  <Typography variant="subtitle2">Diet Type Cover Image:</Typography>
+                  <img
+                    src={dietTypeCoverImage}
+                    alt="Diet Type Cover"
+                    style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
+                  />
+                </Box>
+              )}
+            </Grid>
+          </Grid>
         </form>
       </DialogContent>
       <DialogActions>

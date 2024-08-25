@@ -34,7 +34,8 @@ export const getMeals = async () => {
             ingredients: mealData.ingredients || '',
             instructions: mealData.instructions || '',
             imageUrl: mealData.imageUrl || '',
-            imageFile: null
+            imageFile: null,
+            mealDuration:mealData?.mealDuration
           });
         });
       });
@@ -139,19 +140,36 @@ export const deleteMeal = async (mealId, mealCategory, mealTime) => {
   }
 };
 
-// Function to get all diet types
 export const getAllDietTypes = async () => {
   try {
     const mealsRef = ref(db, 'meals');
     const snapshot = await get(mealsRef);
     if (snapshot.exists()) {
       const data = snapshot.val();
-      const dietTypes = Object.keys(data);
+      const dietTypes = Object.keys(data).map(key => ({
+        name: key,
+        imageUrl: data[key].dietTypeImageUrl || ''
+      }));
       return dietTypes;
     }
     return [];
   } catch (error) {
     console.error("Error fetching diet types:", error);
+    throw error;
+  }
+};
+
+export const updateDietTypeCoverImage = async (dietType, imageFile) => {
+  try {
+    if (!imageFile) return null;
+
+    const imageUrl = await uploadImageAndGetURL(imageFile, `meals/${dietType}/dietTypeCoverImage`);
+    const dietTypeRef = ref(db, `meals/${dietType}`);
+    await update(dietTypeRef, { dietTypeImageUrl: imageUrl });
+
+    return imageUrl;
+  } catch (error) {
+    console.error("Error updating diet type cover image:", error);
     throw error;
   }
 };
