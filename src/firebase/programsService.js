@@ -46,38 +46,216 @@ export const getPrograms = async () => {
     return programs;
 };
 
-export const addProgram = async (program) => {
-    const categoryRef = ref(db, `programs/${program.programCategory}`);
-    const newProgramRef = program.id ? ref(db, `programs/${program.programCategory}/${program.id}`) : push(categoryRef);
+export const uploadFileToFirebase = async (file, path) => {
+  if (!file) return null;
 
-    try {
-        let programImageUrl = program.programImageUrl || '';
-        if (program.programImageFile instanceof File) {
-            const imageFileRef = storageRef(storage, `programs/${program.programCategory}/${newProgramRef.key}/programImageUrl/${program.programImageFile.name}`);
-            await uploadBytes(imageFileRef, program.programImageFile);
-            programImageUrl = await getDownloadURL(imageFileRef);
-            console.log("Program image uploaded:", programImageUrl);
+  const fileRef = storageRef(storage, path);
+  await uploadBytes(fileRef, file);
+  const downloadURL = await getDownloadURL(fileRef);
+  return downloadURL;
+};
+
+export const uploadProgramFiles = async (program) => {
+  const programId = program.id || Date.now().toString();
+  const baseStoragePath = `programs/${program.programCategory}/${programId}`;
+
+  // Upload program image
+  if (program.programImageFile) {
+    program.programImageUrl = await uploadFileToFirebase(
+      program.programImageFile,
+      `${baseStoragePath}/programImageUrl/${program.programImageFile.name}`
+    );
+  }
+
+  // Upload week images and exercise GIFs
+  if (program.weeks && Array.isArray(program.weeks)) {
+    for (let weekIndex = 0; weekIndex < program.weeks.length; weekIndex++) {
+      const week = program.weeks[weekIndex];
+      if (week.days && Array.isArray(week.days)) {
+        for (let dayIndex = 0; dayIndex < week.days.length; dayIndex++) {
+          const day = week.days[dayIndex];
+
+          // Upload day image
+          if (day.imageFile) {
+            day.imageUrl = await uploadFileToFirebase(
+              day.imageFile,
+              `${baseStoragePath}/week${weekIndex + 1}/day${dayIndex + 1}/dayImage/${day.imageFile.name}`
+            );
+          }
+
+          // Upload warm-up GIFs
+          if (day.warmUp && Array.isArray(day.warmUp)) {
+            for (let warmUpIndex = 0; warmUpIndex < day.warmUp.length; warmUpIndex++) {
+              const warmUpExercise = day.warmUp[warmUpIndex];
+              if (warmUpExercise.gifFile) {
+                warmUpExercise.gifUrl = await uploadFileToFirebase(
+                  warmUpExercise.gifFile,
+                  `${baseStoragePath}/week${weekIndex + 1}/day${dayIndex + 1}/warmUp/${warmUpIndex}/${warmUpExercise.gifFile.name}`
+                );
+              }
+            }
+          }
+
+          // Upload workout GIFs
+          if (day.workout && Array.isArray(day.workout)) {
+            for (let setIndex = 0; setIndex < day.workout.length; setIndex++) {
+              const set = day.workout[setIndex];
+              if (set.exercises && Array.isArray(set.exercises)) {
+                for (let exerciseIndex = 0; exerciseIndex < set.exercises.length; exerciseIndex++) {
+                  const exercise = set.exercises[exerciseIndex];
+                  if (exercise.gifFile) {
+                    exercise.gifUrl = await uploadFileToFirebase(
+                      exercise.gifFile,
+                      `${baseStoragePath}/week${weekIndex + 1}/day${dayIndex + 1}/workout/set${setIndex + 1}/${exerciseIndex}/${exercise.gifFile.name}`
+                    );
+                  }
+                }
+              }
+            }
+          }
+
+          // Upload mindfulness images
+          if (day.mindfulness && Array.isArray(day.mindfulness)) {
+            for (let mindfulnessIndex = 0; mindfulnessIndex < day.mindfulness.length; mindfulnessIndex++) {
+              const mindfulness = day.mindfulness[mindfulnessIndex];
+              if (mindfulness.imageFile) {
+                mindfulness.imageUrl = await uploadFileToFirebase(
+                  mindfulness.imageFile,
+                  `${baseStoragePath}/week${weekIndex + 1}/day${dayIndex + 1}/mindfulness/${mindfulnessIndex}/${mindfulness.imageFile.name}`
+                );
+              }
+            }
+          }
+
+          // Upload stretch images
+          if (day.stretch && Array.isArray(day.stretch)) {
+            for (let stretchIndex = 0; stretchIndex < day.stretch.length; stretchIndex++) {
+              const stretch = day.stretch[stretchIndex];
+              if (stretch.imageFile) {
+                stretch.imageUrl = await uploadFileToFirebase(
+                  stretch.imageFile,
+                  `${baseStoragePath}/week${weekIndex + 1}/day${dayIndex + 1}/stretch/${stretchIndex}/${stretch.imageFile.name}`
+                );
+              }
+            }
+          }
         }
-
-        const processedWeeks = await processWeeksAndExercises(program.programCategory, newProgramRef.key, program.weeks || []);
-
-        const newProgram = {
-            ...program,
-            programImageUrl,
-            weeks: transformToNamedStructure(processedWeeks),
-            createdAt: program.createdAt || Date.now() / 1000,
-        };
-
-        delete newProgram.programImageFile;
-        delete newProgram.programCategory;
-
-        await set(newProgramRef, newProgram);
- 
-        return { id: newProgramRef.key, ...newProgram, programCategory: program.programCategory };
-    } catch (error) {
-        console.error("Error adding/updating program:", error);
-        throw error;
+      }
     }
+  }
+
+  return program;
+};
+ 
+export const addProgram = async (program) => {
+  try {
+  
+    const programId = program.id || push(ref(db, 'programs')).key;
+    const programRef = ref(db, `programs/${programId}`);
+
+    // Upload all files and update URLs in the program object
+    const updatedProgram = await uploadProgramFiles({ ...program, id: programId });
+
+    const transformedProgram = {
+      [updatedProgram.programCategory]: {
+        [updatedProgram.level]: {
+          createdAt: Date.now() / 1000,
+          description: updatedProgram.description,
+          duration: updatedProgram.duration,
+          guidedOrSelfGuidedProgram: updatedProgram.guidedOrSelfGuidedProgram,
+          id: programId,
+          programImageUrl: updatedProgram.programImageUrl,
+          title: updatedProgram.title,
+          weeks: transformWeeks(updatedProgram.weeks)
+        }
+      }
+    };
+
+    // Remove any undefined values from the transformedProgram
+    const cleanProgram = JSON.parse(JSON.stringify(transformedProgram));
+    await set(programRef, cleanProgram);
+ 
+    return {
+      programId,
+      program: cleanProgram
+    };
+  } catch (error) {
+    console.error("Error adding/updating program:", error);
+    throw error;
+  }
+};
+
+const transformWeeks = (weeks) => {
+  return weeks.reduce((acc, week, weekIndex) => {
+    acc[`week${weekIndex + 1}`] = {
+      days: week.days.reduce((dayAcc, day, dayIndex) => {
+        dayAcc[`day${dayIndex + 1}`] = {
+          title: day.title,
+          description: day.description,
+          duration: day.duration,
+          targetArea: day.targetArea,
+          focus:day.focus,
+          isOptional: day.isOptional,
+          imageUrl: day.imageUrl,
+          level: day.level,
+          equipment: day.equipment,
+          warmUp: day.warmUp.map(exercise => ({
+            name: exercise.name,
+            duration: exercise.duration,
+            reps: exercise.reps,
+            gifUrl: exercise.gifUrl
+          })),
+          workout: day.workout.reduce((setAcc, set, setIndex) => {
+            setAcc[`set${setIndex + 1}`] = set.exercises.map(exercise => ({
+              name: exercise.name,
+              reps: exercise.reps,
+              rest: exercise.rest,
+              tempo: exercise.tempo,
+              gifUrl: exercise.gifUrl
+            }));
+            return setAcc;
+          }, {}),
+          mindfulness: day.mindfulness?.map(exercise => ({
+            name: exercise.name,
+            duration: exercise.duration,
+            imageUrl: exercise.imageUrl
+          })),
+          stretch: day.stretch?.map(exercise => ({
+            name: exercise.name,
+            duration: exercise.duration,
+            imageUrl: exercise.imageUrl
+          }))
+        };
+        return dayAcc;
+      }, {})
+    };
+    return acc;
+  }, {});
+};
+
+const transformDays = (days) => {
+  return days.reduce((acc, day, dayIndex) => {
+    acc[`day${dayIndex + 1}`] = {
+      description: day.description,
+      duration: day.duration,
+      imageUrl: day.imageUrl,
+      isOptional: day.isOptional,
+      level: day.level,
+      title: day.title,
+      warmUp: day.warmUp,
+      workout: transformWorkout(day.workout),
+      mindfulness: day.mindfulness,
+      stretch: day.stretch
+    };
+    return acc;
+  }, {});
+};
+
+const transformWorkout = (workout) => {
+  return workout.reduce((acc, set, setIndex) => {
+    acc[`set${setIndex + 1}`] = set.exercises;
+    return acc;
+  }, {});
 };
 
 export const updateProgram = async (id, program, oldCategory) => {
