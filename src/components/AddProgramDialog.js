@@ -25,6 +25,10 @@ const AddProgramsDialog = ({ open, onClose }) => {
         setProgram({ ...program, [name]: value });
     };
 
+    useEffect(() => {
+        console.log("program=>", program);
+    }, [program]);
+
     const deleteWeek = (weekIndex) => {
         setProgram(prevProgram => {
             const newWeeks = prevProgram.weeks.filter((_, index) => index !== weekIndex);
@@ -41,11 +45,13 @@ const AddProgramsDialog = ({ open, onClose }) => {
 
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
-        setProgram({
-            ...program,
-            programImageUrl: URL.createObjectURL(file),
-            programImageFile: file
-        });
+        if (file) {
+            setProgram({
+                ...program,
+                programImageUrl: URL.createObjectURL(file),
+                programImageFile: file
+            });
+        }
     };
 
     const handleWeeksImageUpload = (weekIndex, dayIndex, type, exerciseIndex, e) => {
@@ -184,7 +190,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            const programToSubmit = JSON.parse(JSON.stringify({
+            const programToSubmit =  {
                 ...program,
                 programImageFile: program.programImageFile,
                 weeks: program.weeks.map(week => ({
@@ -210,9 +216,13 @@ const AddProgramsDialog = ({ open, onClose }) => {
                         }))
                     }))
                 }))
-            }));
+            } 
+
+            console.log("programToSubmit=>", programToSubmit);
 
             const newProgram = await addProgram(programToSubmit);
+            console.log("newProgram=>", newProgram);
+
             onClose(newProgram);
         } catch (error) {
             console.error('Error adding program:', error);
