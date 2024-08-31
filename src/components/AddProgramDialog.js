@@ -612,7 +612,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                                                 onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'warmUp', null, exerciseIndex, 'reps', e.target.value)}
                                             />
                                             <input
-                                                accept="image/gif"
+                                                accept="image/*"
                                                 style={{ display: 'none' }}
                                                 id={`gif-upload-warmup-${weekIndex}-${dayIndex}-${exerciseIndex}`}
                                                 type="file"
@@ -620,7 +620,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                                             />
                                             <label htmlFor={`gif-upload-warmup-${weekIndex}-${dayIndex}-${exerciseIndex}`}>
                                                 <Button variant="contained" component="span">
-                                                    Upload GIF
+                                                    Upload Img / GIF
                                                 </Button>
                                             </label>
                                             {exercise.gifUrl && (
@@ -675,7 +675,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                                                         onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'tempo', e.target.value)}
                                                     />
                                                     <input
-                                                        accept="image/gif"
+                                                        accept="image/*"
                                                         style={{ display: 'none' }}
                                                         id={`gif-upload-workout-${weekIndex}-${dayIndex}-${setIndex}-${exerciseIndex}`}
                                                         type="file"
@@ -683,7 +683,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                                                     />
                                                     <label htmlFor={`gif-upload-workout-${weekIndex}-${dayIndex}-${setIndex}-${exerciseIndex}`}>
                                                         <Button variant="contained" component="span">
-                                                            Upload GIF
+                                                            Upload Img /GIF
                                                         </Button>
                                                     </label>
                                                     {exercise.gifUrl && (
