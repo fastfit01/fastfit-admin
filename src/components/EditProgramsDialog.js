@@ -1,22 +1,67 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, Typography, Grid, Checkbox, FormControlLabel, IconButton } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, Typography, Grid, Checkbox, FormControlLabel, IconButton, CircularProgress } from '@mui/material';
 import { updateProgram } from '../firebase/programsService';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 const EditProgramsDialog = ({ open, onClose, program }) => {
-    const [editedProgram, setEditedProgram] = useState(program);
+    const [editedProgram, setEditedProgram] = useState(() => ({
+        id: program?.id ?? '',
+        title: program?.title ?? '',
+        description: program?.description ?? '',
+        level: program?.level ?? '',
+        programCategory: program?.programCategory ?? '',
+        programImageUrl: program?.programImageUrl ?? null,
+        programImageFile: null,
+        duration: program?.duration ?? '',
+        guidedOrSelfGuidedProgram: program?.guidedOrSelfGuidedProgram ?? '',
+        weeks: program?.weeks?.map(week => ({
+            days: week.days?.map(day => ({
+                title: day?.title ?? '',
+                description: day?.description ?? '',
+                duration: day?.duration ?? '',
+                targetArea: day?.targetArea ?? [],
+                isOptional: day?.isOptional ?? false,
+                focus: day?.focus ?? '',
+                warmUp: day?.warmUp ?? [],
+                workout: day?.workout ?? [],
+                mindfulness: day?.mindfulness ?? [],
+                stretch: day?.stretch ?? []
+            })) ?? []
+        })) ?? []
+    }));
+    const [oldProgram, setOldProgram] = useState(program);
+    const [currentTarget, setCurrentTarget] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
 
     useEffect(() => {
-        setEditedProgram(program);
+        setEditedProgram({
+            id: program?.id ?? '',
+            title: program?.title ?? '',
+            description: program?.description ?? '',
+            level: program?.level ?? '',
+            programCategory: program?.programCategory ?? '',
+            programImageUrl: program?.programImageUrl ?? null,
+            programImageFile: null,
+            duration: program?.duration ?? '',
+            guidedOrSelfGuidedProgram: program?.guidedOrSelfGuidedProgram ?? '',
+            weeks: program?.weeks?.map(week => ({
+                days: week.days?.map(day => ({
+                    title: day?.title ?? '',
+                    description: day?.description ?? '',
+                    duration: day?.duration ?? '',
+                    targetArea: day?.targetArea ?? [],
+                    isOptional: day?.isOptional ?? false,
+                    focus: day?.focus ?? '',
+                    warmUp: day?.warmUp ?? [],
+                    workout: day?.workout ?? [],
+                    mindfulness: day?.mindfulness ?? [],
+                    stretch: day?.stretch ?? []
+                })) ?? []
+            })) ?? []
+        });
+        setOldProgram(program);
     }, [program]);
-
-
-    useEffect(() => {
-        console.log("editedProgram jfjfj ", editedProgram);
-        console.log("program in edut", program);
-    }, [program, editedProgram]);
-
- 
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -30,20 +75,20 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
     const addWeek = () => {
         setEditedProgram({
             ...editedProgram,
-            weeks: [...editedProgram.weeks, { days: [] }]
+            weeks: [...editedProgram?.weeks, { days: [] }]
         });
     };
 
     const deleteWeek = (weekIndex) => {
         setEditedProgram(prevProgram => {
-            const newWeeks = prevProgram.weeks.filter((_, index) => index !== weekIndex);
+            const newWeeks = prevProgram?.weeks?.filter((_, index) => index !== weekIndex);
             return { ...prevProgram, weeks: newWeeks };
         });
     };
 
     const addDay = (weekIndex) => {
         setEditedProgram(prevProgram => {
-            const newWeeks = [...prevProgram.weeks];
+            const newWeeks = [...prevProgram?.weeks];
             newWeeks[weekIndex].days.push({
                 title: '',
                 description: '',
@@ -62,7 +107,7 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
 
     const deleteDay = (weekIndex, dayIndex) => {
         setEditedProgram(prevProgram => {
-            const newWeeks = [...prevProgram.weeks];
+            const newWeeks = [...prevProgram?.weeks];
             newWeeks[weekIndex].days = newWeeks[weekIndex].days.filter((_, index) => index !== dayIndex);
             return { ...prevProgram, weeks: newWeeks };
         });
@@ -70,7 +115,7 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
 
     const addSet = (weekIndex, dayIndex) => {
         setEditedProgram(prevProgram => {
-            const newWeeks = [...prevProgram.weeks];
+            const newWeeks = [...prevProgram?.weeks];
             if (!newWeeks[weekIndex].days[dayIndex].workout) {
                 newWeeks[weekIndex].days[dayIndex].workout = [];
             }
@@ -84,17 +129,30 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
 
     const handleDayChange = (weekIndex, dayIndex, field, value) => {
         setEditedProgram(prevProgram => {
-            const newWeeks = [...prevProgram.weeks];
+            const newWeeks = [...prevProgram?.weeks];
             newWeeks[weekIndex].days[dayIndex][field] = value;
             return { ...prevProgram, weeks: newWeeks };
         });
     };
 
+    const handleTargetAreaChange = (weekIndex, dayIndex) => {
+        if (currentTarget) {
+            const newTargetArea = [...editedProgram?.weeks[weekIndex]?.days[dayIndex]?.targetArea, currentTarget];
+            handleDayChange(weekIndex, dayIndex, 'targetArea', newTargetArea);
+            setCurrentTarget('');
+        }
+    };
+
+    const removeTargetArea = (weekIndex, dayIndex, targetIndex) => {
+        const newTargetArea = editedProgram?.weeks[weekIndex]?.days[dayIndex]?.targetArea?.filter((_, index) => index !== targetIndex);
+        handleDayChange(weekIndex, dayIndex, 'targetArea', newTargetArea);
+    };
+
     const addExercise = (weekIndex, dayIndex, type, setIndex = null) => {
         setEditedProgram(prevProgram => {
-            const newWeeks = [...prevProgram.weeks];
+            const newWeeks = [...prevProgram?.weeks];
             if (type === 'warmUp') {
-                if (!newWeeks[weekIndex].days[dayIndex].warmUp) {
+                if (!newWeeks[weekIndex]?.days[dayIndex]?.warmUp) {
                     newWeeks[weekIndex].days[dayIndex].warmUp = [];
                 }
                 newWeeks[weekIndex].days[dayIndex].warmUp.push({
@@ -199,13 +257,25 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsLoading(true);
         try {
-            const updatedProgram = await updateProgram(editedProgram.id, editedProgram, program.programCategory, program.level);
+            const updatedProgram = await updateProgram(oldProgram.id, editedProgram, oldProgram.programCategory, oldProgram.level);
+            console.log("Updated program received:", updatedProgram);
             onClose(updatedProgram);
         } catch (error) {
             console.error('Error updating program:', error);
+        } finally {
+            setIsLoading(false);
         }
     };
+
+    if (isLoading) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{ height: '100vh' }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
 
     return (
         <Dialog open={open} onClose={() => onClose()} maxWidth="lg" fullWidth>
@@ -340,71 +410,117 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                                             <DeleteIcon />
                                         </IconButton>
                                     </Box>
-                                    <TextField
-                                        label="Day Title"
-                                        value={day.title}
-                                        onChange={(e) => handleDayChange(weekIndex, dayIndex, 'title', e.target.value)}
-                                    />
-                                    <TextField
-                                        label="Day Description"
-                                        value={day.description}
-                                        onChange={(e) => handleDayChange(weekIndex, dayIndex, 'description', e.target.value)}
-                                    />
-                                    <TextField
-                                        label="Duration"
-                                        value={day.duration}
-                                        onChange={(e) => handleDayChange(weekIndex, dayIndex, 'duration', e.target.value)}
-                                    />
-                                    <TextField
-                                        label="Target Area"
-                                        value={day.targetArea}
-                                        onChange={(e) => handleDayChange(weekIndex, dayIndex, 'targetArea', e.target.value.split(','))}
-                                    />
-                                    <FormControlLabel
-                                        control={
-                                            <Checkbox
-                                                checked={day.isOptional}
-                                                onChange={(e) => handleDayChange(weekIndex, dayIndex, 'isOptional', e.target.checked)}
+
+                                    <Grid item>
+                                        <Grid container spacing={2}>
+                                            <Grid item xs={12} container spacing={2}>
+                                                <Grid item xs={4}>
+                                                    <TextField
+                                                        fullWidth
+                                                        label="Day Title"
+                                                        value={day.title}
+                                                        onChange={(e) => handleDayChange(weekIndex, dayIndex, 'title', e.target.value)}
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={4}>
+                                                    <TextField
+                                                        fullWidth
+                                                        label="Day Description"
+                                                        value={day.description}
+                                                        onChange={(e) => handleDayChange(weekIndex, dayIndex, 'description', e.target.value)}
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={4}>
+                                                    <TextField
+                                                        fullWidth
+                                                        label="Duration"
+                                                        value={day.duration}
+                                                        onChange={(e) => handleDayChange(weekIndex, dayIndex, 'duration', e.target.value)}
+                                                    />
+                                                </Grid>
+                                            </Grid>
+                                            <Grid item xs={12} container spacing={2} alignItems="center">
+                                                <Grid item xs={3}>
+                                                    <TextField
+                                                        fullWidth
+                                                        label="Target Area"
+                                                        value={currentTarget}
+                                                        onChange={(e) => setCurrentTarget(e.target.value)}
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={2}>
+                                                    <Button
+                                                        fullWidth
+                                                        variant="contained"
+                                                        onClick={() => handleTargetAreaChange(weekIndex, dayIndex)}
+                                                    >
+                                                        Add Target Area
+                                                    </Button>
+                                                </Grid>
+                                                <Grid item xs={7}>
+                                                    {day.targetArea?.map((target, index) => (
+                                                        <Chip
+                                                            key={index}
+                                                            label={target}
+                                                            onDelete={() => removeTargetArea(weekIndex, dayIndex, index)}
+                                                            style={{ margin: 4 }}
+                                                        />
+                                                    ))}
+                                                </Grid>
+                                                <Grid item xs={4}>
+                                                    <FormControlLabel
+                                                        control={
+                                                            <Checkbox
+                                                                checked={day.isOptional}
+                                                                onChange={(e) => handleDayChange(weekIndex, dayIndex, 'isOptional', e.target.checked)}
+                                                            />
+                                                        }
+                                                        label="Optional"
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={8}>
+                                                    <TextField
+                                                        fullWidth
+                                                        label="Focus"
+                                                        value={day.focus}
+                                                        onChange={(e) => handleDayChange(weekIndex, dayIndex, 'focus', e.target.value)}
+                                                    />
+                                                </Grid>
+                                            </Grid>
+                                        </Grid>
+                                        <Grid item xs={4} sx={{
+                                            display: 'flex',
+                                            marginTop: '10px',
+                                            alignItems: 'center'
+                                        }}>
+                                            <input
+                                                accept="image/*"
+                                                style={{ display: 'none' }}
+                                                id={`day-image-upload-${weekIndex}-${dayIndex}`}
+                                                type="file"
+                                                onChange={(e) => handleDayImageUpload(weekIndex, dayIndex, e)}
                                             />
-                                        }
-                                        label="Optional"
-                                    />
-                                    <TextField
-                                        label="Focus"
-                                        value={day.focus}
-                                        onChange={(e) => handleDayChange(weekIndex, dayIndex, 'focus', e.target.value)}
-                                    />
-                                    <Grid item xs={4} sx={{
-                                        display: 'flex',
-                                        marginTop: '10px',
-                                        alignItems: 'center'
-                                    }}>
-                                        <input
-                                            accept="image/*"
-                                            style={{ display: 'none' }}
-                                            id={`day-image-upload-${weekIndex}-${dayIndex}`}
-                                            type="file"
-                                            onChange={(e) => handleDayImageUpload(weekIndex, dayIndex, e)}
-                                        />
-                                        <label htmlFor={`day-image-upload-${weekIndex}-${dayIndex}`}>
-                                            <Button variant="contained" component="span">
-                                                Upload Day Image
-                                            </Button>
-                                        </label>
-                                        {day.imageUrl && (
-                                            <img
-                                                src={day.imageUrl}
-                                                alt="Day Image Preview"
-                                                style={{
-                                                    width: '50px',
-                                                    height: '50px',
-                                                    objectFit: 'cover',
-                                                    borderRadius: '10%',
-                                                    marginLeft: '10px'
-                                                }}
-                                            />
-                                        )}
+                                            <label htmlFor={`day-image-upload-${weekIndex}-${dayIndex}`}>
+                                                <Button variant="contained" component="span">
+                                                    Upload Day Image
+                                                </Button>
+                                            </label>
+                                            {day.imageUrl && (
+                                                <img
+                                                    src={day.imageUrl}
+                                                    alt="Day Image Preview"
+                                                    style={{
+                                                        width: '50px',
+                                                        height: '50px',
+                                                        objectFit: 'cover',
+                                                        borderRadius: '10%',
+                                                        marginLeft: '10px'
+                                                    }}
+                                                />
+                                            )}
+                                        </Grid>
                                     </Grid>
+
                                     <Box mt={2}>
                                         <Typography variant="subtitle1">Warm Up</Typography>
                                         <Button onClick={() => addExercise(weekIndex, dayIndex, 'warmUp')}>Add Warm Up Exercise</Button>
@@ -426,14 +542,14 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                                                     onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'warmUp', null, index, 'reps', e.target.value)}
                                                 />
                                                 <input
-                                                    accept="image/gif"
+                                                    accept="image/*"
                                                     style={{ display: 'none' }}
                                                     id={`warm-up-gif-${weekIndex}-${dayIndex}-${index}`}
                                                     type="file"
                                                     onChange={(e) => handleGifUpload(weekIndex, dayIndex, 'warmUp', null, index, e)}
                                                 />
                                                 <label htmlFor={`warm-up-gif-${weekIndex}-${dayIndex}-${index}`}>
-                                                    <Button component="span">Upload GIF</Button>
+                                                    <Button component="span">Upload Img / GIF</Button>
                                                 </label>
                                                 {exercise.gifUrl && (
                                                     <img
@@ -481,14 +597,14 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                                                             onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'tempo', e.target.value)}
                                                         />
                                                         <input
-                                                            accept="image/gif"
+                                                            accept="image/*"
                                                             style={{ display: 'none' }}
                                                             id={`workout-gif-${weekIndex}-${dayIndex}-${setIndex}-${exerciseIndex}`}
                                                             type="file"
                                                             onChange={(e) => handleGifUpload(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, e)}
                                                         />
                                                         <label htmlFor={`workout-gif-${weekIndex}-${dayIndex}-${setIndex}-${exerciseIndex}`}>
-                                                            <Button component="span">Upload GIF</Button>
+                                                            <Button component="span">Upload Image / GIF</Button>
                                                         </label>
                                                         {exercise.gifUrl && (
                                                             <img

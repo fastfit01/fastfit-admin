@@ -62,9 +62,17 @@ const Programs = () => {
   const handleEditDialogClose = (updatedProgram) => {
     setOpenEditDialog(false);
     if (updatedProgram) {
-      setPrograms(programs.map(p => p.id === updatedProgram.id ? updatedProgram : p));
+      try {
+        setPrograms(prevPrograms => 
+          prevPrograms.map(p => p.id === updatedProgram.id ? updatedProgram : p)
+        );
+        console.log("Program updated successfully:", updatedProgram);
+      } catch (error) {
+        console.error("Error updating program in state:", error);
+      }
+    } else {
+      console.log("Edit dialog closed without updates");
     }
-    setSelectedProgram(null);
   };
 
   if (isLoading) {

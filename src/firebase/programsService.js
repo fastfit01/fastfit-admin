@@ -11,7 +11,7 @@ const transformToNamedStructure = (weeks) => {
         return dayAcc;
       }, {})
     };
-    return acc; 
+    return acc;
   }, {});
 };
 
@@ -23,76 +23,76 @@ const transformToArrayStructure = (weeks) => {
 };
 
 export const getPrograms = async () => {
-    const programsRef = ref(db, 'programs');
-    const snapshot = await get(programsRef);
-    const programs = [];
-    
-    if (snapshot.exists()) {
-      snapshot.forEach((categorySnapshot) => {
-        const category = categorySnapshot.key;
-        categorySnapshot.forEach((levelSnapshot) => {
-          const level = levelSnapshot.key;
-          levelSnapshot.forEach((programSnapshot) => {
-            const program = programSnapshot.val();
-            if (program.weeks) {
-              program.weeks = transformToArrayStructure(program.weeks);
-            }
-            programs.push({ 
-              id: programSnapshot.key, 
-              title: program.title,
-              description: program.description,
-              level: level,
-              programImageUrl: program.programImageUrl,
-              guidedOrSelfGuidedProgram: program.guidedOrSelfGuidedProgram,
-              duration: program.duration,
-              weeks: program.weeks.map(week => ({
-                days: week.days.map(day => ({
-                  title: day.title,
-                  description: day.description,
-                  duration: day.duration,
-                  targetArea: day.targetArea || [],
-                  isOptional: day.isOptional,
-                  imageUrl: day.imageUrl,
-                  level: day.level,
-                  equipment: day.equipment || [],
-                  warmUp: day.warmUp ? day.warmUp.map(exercise => ({
-                    name: exercise.name,
-                    duration: exercise.duration,
-                    reps: exercise.reps,
-                    gifUrl: exercise.gifUrl
-                  })) : [],
-                  workout: Object.entries(day.workout || {}).map(([setName, exercises]) => ({
-                    setName: setName,
-                    exercises: exercises.map(exercise => ({
-                      name: exercise.name,
-                      reps: exercise.reps,
-                      rest: exercise.rest,
-                      tempo: exercise.tempo,
-                      gifUrl: exercise.gifUrl
-                    }))
-                  })),
-                  focus: day.focus,
-                  mindfulness: day.mindfulness?.map(exercise => ({
-                    name: exercise.name,
-                    duration: exercise.duration,
-                    imageUrl: exercise.imageUrl
-                  })) || [],
-                  stretch: day.stretch?.map(exercise => ({
-                    name: exercise.name,
-                    duration: exercise.duration,
-                    imageUrl: exercise.imageUrl
-                  })) || []
-                }))
-              })),
-              programCategory: category
-            });
+  const programsRef = ref(db, 'programs');
+  const snapshot = await get(programsRef);
+  const programs = [];
+
+  if (snapshot.exists()) {
+    snapshot.forEach((categorySnapshot) => {
+      const category = categorySnapshot.key;
+      categorySnapshot.forEach((levelSnapshot) => {
+        const level = levelSnapshot.key;
+        levelSnapshot.forEach((programSnapshot) => {
+          const program = programSnapshot.val();
+          if (program.weeks) {
+            program.weeks = transformToArrayStructure(program.weeks);
+          }
+          programs.push({
+            id: programSnapshot.key,
+            title: program?.title,
+            description: program?.description,
+            level: level,
+            programImageUrl: program?.programImageUrl,
+            guidedOrSelfGuidedProgram: program?.guidedOrSelfGuidedProgram,
+            duration: program?.duration,
+            weeks: program?.weeks?.map(week => ({
+              days: week?.days?.map(day => ({
+                title: day?.title,
+                description: day.description,
+                duration: day?.duration,
+                targetArea: day?.targetArea || [],
+                isOptional: day?.isOptional,
+                imageUrl: day?.imageUrl,
+                level: day?.level,
+                equipment: day?.equipment || [],
+                warmUp: day?.warmUp ? day?.warmUp.map(exercise => ({
+                  name: exercise?.name,
+                  duration: exercise?.duration,
+                  reps: exercise?.reps,
+                  gifUrl: exercise?.gifUrl
+                })) : [],
+                workout: Object.entries(day?.workout || {}).map(([setName, exercises]) => ({
+                  setName: setName,
+                  exercises: exercises?.map(exercise => ({
+                    name: exercise?.name,
+                    reps: exercise?.reps,
+                    rest: exercise?.rest,
+                    tempo: exercise?.tempo,
+                    gifUrl: exercise?.gifUrl
+                  }))
+                })),
+                focus: day?.focus,
+                mindfulness: day?.mindfulness?.map(exercise => ({
+                  name: exercise?.name,
+                  duration: exercise?.duration,
+                  imageUrl: exercise?.imageUrl
+                })) || [],
+                stretch: day?.stretch?.map(exercise => ({
+                  name: exercise?.name,
+                  duration: exercise?.duration,
+                  imageUrl: exercise?.imageUrl
+                })) || []
+              }))
+            })),
+            programCategory: category
           });
         });
       });
-    }
+    });
+  }
 
-    console.log("programs get=>", programs);
-    return programs;
+  console.log("programs get=>", programs);
+  return programs;
 };
 
 export const uploadFileToFirebase = async (file, path) => {
@@ -195,7 +195,7 @@ export const uploadProgramFiles = async (program) => {
 
   return program;
 };
- 
+
 export const addProgram = async (program) => {
   try {
     const programId = program.id || push(ref(db, `programs/${program.programCategory}/${program.level}`)).key;
@@ -248,7 +248,7 @@ const transformWeeks = (weeks) => {
           description: day.description,
           duration: day.duration,
           targetArea: day.targetArea,
-          focus:day.focus,
+          focus: day.focus,
           isOptional: day.isOptional,
           imageUrl: day.imageUrl,
           level: day.level,
@@ -319,7 +319,7 @@ function removeUndefinedValues(obj) {
     const value = obj[key];
     if (value !== undefined) {
       if (typeof value === 'object' && value !== null && !(value instanceof File)) {
-        result[key] = Array.isArray(value) 
+        result[key] = Array.isArray(value)
           ? value.map(item => removeUndefinedValues(item))
           : removeUndefinedValues(value);
       } else {
@@ -330,123 +330,134 @@ function removeUndefinedValues(obj) {
   return result;
 }
 
-export const updateProgram = async (id, program, oldCategory, oldLevel) => {
+export const updateProgram = async (programId, programData, oldCategory, oldLevel) => {
   try {
-      // Delete the old program
-      await deleteProgram(id, oldCategory, oldLevel);
+    // Delete the old program
+    await deleteProgram(programId, oldCategory, oldLevel);
 
-      // Create a new program with the updated data
-      const updatedProgram = await addProgram(program);
+    // Create a new program with the updated data
+    const updatedProgram = await addProgram(programData);
 
-      console.log("Program updated:", updatedProgram.id);
+    console.log("Program updated:", updatedProgram.id);
 
-      return updatedProgram;
+    // After updating the program
+    const newProgramRef = ref(db, `programs/${programData.programCategory}/${programData.level}/${programId}`);
+    await set(newProgramRef, updatedProgram);
+
+    console.log("Program updated:", programId);
+
+    // Return the updated program data
+    return updatedProgram;
   } catch (error) {
-      console.error("Error updating program:", error);
-      throw error;
+    console.error("Error updating program:", error);
+    throw error;
   }
 };
 
 export const deleteProgram = async (programId, programCategory, level) => {
-    try {
-        const programRef = ref(db, `programs/${programCategory}/${level}/${programId}`);
-        const snapshot = await get(programRef);
-        console.log("snapshot.exists()=>", snapshot.exists());
-        if (snapshot.exists()) {
-            const programData = snapshot.val();
-            console.log("programData snap=>", programData);
-            // Delete program image
-            if (programData && programData.programImageUrl) {          
-                const imageRef = storageRef(storage, programData.programImageUrl);
-                try {
-                    await deleteObject(imageRef);
-                    console.log("Program image deleted successfully");
-                } catch (imageError) {
-                    console.warn("Error deleting program image:", imageError);
-                }
-            }
+  console.log("deleteProgram function programId=>", programId);
+  console.log("deleteProgram function programCategory=>", programCategory);
+  console.log("deleteProgram function level=>", level);
 
-            // Delete all files associated with the program
-            await deleteAllProgramFiles(programCategory, level, programId);
-
-            // Remove the program from the database
-            await remove(programRef);
-            console.log("Program deleted successfully");
-            return true;
-        } else {
-            console.log("Program not found.");
-            return false;
+  try {
+    const programRef = ref(db, `programs/${programCategory}/${level}/${programId}`);
+    const snapshot = await get(programRef);
+    console.log("snapshot.exists()=>", snapshot.exists());
+    if (snapshot.exists()) {
+      const programData = snapshot.val();
+      console.log("programData snap=>", programData);
+      // Delete program image
+      if (programData && programData.programImageUrl) {
+        const imageRef = storageRef(storage, programData.programImageUrl);
+        try {
+          await deleteObject(imageRef);
+          console.log("Program image deleted successfully");
+        } catch (imageError) {
+          console.warn("Error deleting program image:", imageError);
         }
-    } catch (error) {
-        console.error("Error deleting program:", error);
-        throw error;
+      }
+
+      // Delete all files associated with the program
+      await deleteAllProgramFiles(programCategory, level, programId);
+
+      // Remove the program from the database
+      await remove(programRef);
+      console.log("Program deleted successfully");
+      return true;
+    } else {
+      console.log("Program not found.");
+      return false;
     }
+  } catch (error) {
+    console.error("Error deleting program:", error);
+    throw error;
+  }
 };
 
 const deleteAllProgramFiles = async (programCategory, level, programId) => {
-    const baseStoragePath = `programs/${programCategory}/${level}/${programId}`;
-    const filesRef = storageRef(storage, baseStoragePath);
-    
-    try {
-        const filesList = await listAll(filesRef);
-        const deletePromises = filesList.items.map(fileRef => deleteObject(fileRef));
-        await Promise.all(deletePromises);
-        console.log("All program files deleted successfully");
-    } catch (error) {
-        console.error("Error deleting program files:", error);
-    }
+  const baseStoragePath = `programs/${programCategory}/${level}/${programId}`;
+  const filesRef = storageRef(storage, baseStoragePath);
+
+  try {
+    const filesList = await listAll(filesRef);
+    const deletePromises = filesList.items.map(fileRef => deleteObject(fileRef));
+    await Promise.all(deletePromises);
+    console.log("All program files deleted successfully");
+  } catch (error) {
+    console.error("Error deleting program files:", error);
+  }
 };
 
 const processWeeksAndExercises = async (programCategory, programId, weeks) => {
-    const processedWeeks = [];
+  const processedWeeks = [];
 
-    for (let weekIndex = 0; weekIndex < weeks.length; weekIndex++) {
-        const week = weeks[weekIndex];
-        const processedDays = [];
+  for (let weekIndex = 0; weekIndex < weeks.length; weekIndex++) {
+    const week = weeks[weekIndex];
+    const processedDays = [];
 
-        for (let dayIndex = 0; dayIndex < week.days.length; dayIndex++) {
-            const day = week.days[dayIndex];
-            const processedWarmUp = await processExercises(programCategory, programId, weekIndex, dayIndex, 'warmUp', day.warmUp || []);
-            const processedWorkout = await processExercises(programCategory, programId, weekIndex, dayIndex, 'workout', day.workout || []);
+    for (let dayIndex = 0; dayIndex < week.days.length; dayIndex++) {
+      const day = week.days[dayIndex];
+      const processedWarmUp = await processExercises(programCategory, programId, weekIndex, dayIndex, 'warmUp', day.warmUp || []);
+      const processedWorkout = await processExercises(programCategory, programId, weekIndex, dayIndex, 'workout', day.workout || []);
 
-            processedDays.push({
-                ...day,
-                warmUp: processedWarmUp,
-                workout: processedWorkout,
-            });
-        }
-
-        processedWeeks.push({
-            ...week,
-            days: processedDays,
-        });
+      processedDays.push({
+        ...day,
+        warmUp: processedWarmUp,
+        workout: processedWorkout,
+      });
     }
 
-    return processedWeeks;
+    processedWeeks.push({
+      ...week,
+      days: processedDays,
+    });
+  }
+
+  return processedWeeks;
 };
 
 const processExercises = async (programCategory, programId, weekIndex, dayIndex, type, exercises) => {
-    const processedExercises = [];
+  const processedExercises = [];
 
-    for (let exerciseIndex = 0; exerciseIndex < exercises.length; exerciseIndex++) {
-        const exercise = exercises[exerciseIndex];
-        let gifUrl = exercise.gifUrl;
+  for (let exerciseIndex = 0; exerciseIndex < exercises.length; exerciseIndex++) {
+    const exercise = exercises[exerciseIndex];
+    let gifUrl = exercise.gifUrl;
 
-        if (exercise.gifFile instanceof File) {
-            const gifFileRef = storageRef(storage, `programs/${programCategory}/${programId}/week${weekIndex}/day${dayIndex}/${type}/${exerciseIndex}/${exercise.gifFile.name}`);
-            await uploadBytes(gifFileRef, exercise.gifFile);
-            gifUrl = await getDownloadURL(gifFileRef);
-         }
-
-        processedExercises.push({
-            ...exercise,
-            gifUrl,
-        });
-
-        delete processedExercises[exerciseIndex].gifFile;
+    if (exercise.gifFile instanceof File) {
+      const gifFileRef = storageRef(storage, `programs/${programCategory}/${programId}/week${weekIndex}/day${dayIndex}/${type}/${exerciseIndex}/${exercise.gifFile.name}`);
+      await uploadBytes(gifFileRef, exercise.gifFile);
+      gifUrl = await getDownloadURL(gifFileRef);
     }
 
-    return processedExercises;
+    processedExercises.push({
+      ...exercise,
+      gifUrl,
+    });
+
+    delete processedExercises[exerciseIndex].gifFile;
+  }
+
+  return processedExercises;
 };
 
 export const getAllProgramCategories = async () => {
