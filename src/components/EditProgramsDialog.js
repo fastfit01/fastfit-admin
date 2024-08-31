@@ -25,7 +25,8 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                 warmUp: day?.warmUp ?? [],
                 workout: day?.workout ?? [],
                 mindfulness: day?.mindfulness ?? [],
-                stretch: day?.stretch ?? []
+                stretch: day?.stretch ?? [],
+                imageUrl: day?.imageUrl ?? null
             })) ?? []
         })) ?? []
     }));
@@ -56,7 +57,8 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                     warmUp: day?.warmUp ?? [],
                     workout: day?.workout ?? [],
                     mindfulness: day?.mindfulness ?? [],
-                    stretch: day?.stretch ?? []
+                    stretch: day?.stretch ?? [],
+                    imageUrl: day?.imageUrl
                 })) ?? []
             })) ?? []
         });
