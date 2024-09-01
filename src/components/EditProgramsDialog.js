@@ -70,6 +70,16 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
         setEditedProgram({ ...editedProgram, [name]: value });
     };
 
+    const deleteSet = (weekIndex, dayIndex, setIndex) => {
+        setEditedProgram(prevProgram => {
+            const newWeeks = [...prevProgram?.weeks];
+            const newDays = [...newWeeks[weekIndex].days];
+            newDays[dayIndex].workout = newDays[dayIndex].workout.filter((_, index) => index !== setIndex);
+            newWeeks[weekIndex].days = newDays;
+            return { ...prevProgram, weeks: newWeeks };
+        });
+    };
+
     useEffect(() => {
         console.log("editedProgram", editedProgram);
     }, [editedProgram]);
@@ -569,12 +579,27 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                                             </Box>
                                         ))}
                                     </Box>
-                                    <Box mt={2}>
+                                    <Box mt={2} >
                                         <Typography variant="subtitle1">Workout</Typography>
                                         <Button onClick={() => addSet(weekIndex, dayIndex)}>Add Set</Button>
                                         {day.workout?.map((set, setIndex) => (
-                                            <Box key={setIndex} mt={1}>
-                                                <Typography variant="subtitle2">{set.setName}</Typography>
+                                            <Box key={setIndex} mt={1} sx={{
+                                                border: '1px solid',
+                                                borderRadius: '10px',
+                                                padding: '10px'
+                                            }}>
+                                                <Chip
+                                                    key={setIndex}
+                                                    label={`Set ${setIndex + 1}`}
+                                                    onDelete={() => deleteSet(weekIndex, dayIndex, setIndex)} // Pass correct parameters
+                                                    color="primary"
+                                                    variant="outlined"
+                                                    style={{
+                                                        margin: '4px',
+                                                        height: '40px',
+                                                        width: '80px'
+                                                    }}
+                                                />
                                                 <Button onClick={() => addExercise(weekIndex, dayIndex, 'workout', setIndex)}>Add Exercise</Button>
                                                 {set.exercises?.map((exercise, exerciseIndex) => (
                                                     <Box key={exerciseIndex} mt={1}>
