@@ -573,8 +573,12 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                                         <Typography variant="subtitle1">Workout</Typography>
                                         <Button onClick={() => addSet(weekIndex, dayIndex)}>Add Set</Button>
                                         {day.workout?.map((set, setIndex) => (
-                                            <Box key={setIndex} mt={1}>
-                                                <Typography variant="subtitle2">{set.setName}</Typography>
+                                            <Box key={setIndex} mt={1} sx={{
+                                                border: '1px solid',
+                                                borderRadius: '10px',
+                                                padding: '10px'
+                                            }}>
+                                                <Typography variant="subtitle2"> Set {setIndex + 1}</Typography>
                                                 <Button onClick={() => addExercise(weekIndex, dayIndex, 'workout', setIndex)}>Add Exercise</Button>
                                                 {set.exercises?.map((exercise, exerciseIndex) => (
                                                     <Box key={exerciseIndex} mt={1}>
