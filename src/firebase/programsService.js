@@ -339,14 +339,7 @@ export const updateProgram = async (programId, programData, oldCategory, oldLeve
     const updatedProgram = await addProgram(programData);
 
     console.log("Program updated:", updatedProgram.id);
-
-    // After updating the program
-    const newProgramRef = ref(db, `programs/${programData.programCategory}/${programData.level}/${programId}`);
-    await set(newProgramRef, updatedProgram);
-
-    console.log("Program updated:", programId);
-
-    // Return the updated program data
+    
     return updatedProgram;
   } catch (error) {
     console.error("Error updating program:", error);
