@@ -2,19 +2,6 @@ import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject, listAll }
 import { db, storage } from './firebaseConfig';
 import { ref, push, set, get, query, orderByChild, equalTo, remove, update } from "firebase/database";
 
-const transformToNamedStructure = (weeks) => {
-  return weeks.reduce((acc, week, weekIndex) => {
-    acc[`week${weekIndex + 1}`] = {
-      ...week,
-      days: week.days.reduce((dayAcc, day, dayIndex) => {
-        dayAcc[`day${dayIndex + 1}`] = day;
-        return dayAcc;
-      }, {})
-    };
-    return acc;
-  }, {});
-};
-
 const transformToArrayStructure = (weeks) => {
   return Object.entries(weeks).map(([weekKey, weekValue]) => ({
     ...weekValue,
@@ -287,30 +274,7 @@ const transformWeeks = (weeks) => {
   }, {});
 };
 
-const transformDays = (days) => {
-  return days.reduce((acc, day, dayIndex) => {
-    acc[`day${dayIndex + 1}`] = {
-      description: day.description,
-      duration: day.duration,
-      imageUrl: day.imageUrl,
-      isOptional: day.isOptional,
-      level: day.level,
-      title: day.title,
-      warmUp: day.warmUp,
-      workout: transformWorkout(day.workout),
-      mindfulness: day.mindfulness,
-      stretch: day.stretch
-    };
-    return acc;
-  }, {});
-};
-
-const transformWorkout = (workout) => {
-  return workout.reduce((acc, set, setIndex) => {
-    acc[`set${setIndex + 1}`] = set.exercises;
-    return acc;
-  }, {});
-};
+ 
 
 // Helper function to remove undefined values
 function removeUndefinedValues(obj) {
@@ -332,8 +296,14 @@ function removeUndefinedValues(obj) {
 
 export const updateProgram = async (programId, programData, oldCategory, oldLevel) => {
   try {
-    // Delete the old program
-    await deleteProgram(programId, oldCategory, oldLevel);
+    // Delete the old program from the database
+    const oldProgramRef = ref(db, `programs/${oldCategory}/${oldLevel}/${programId}`);
+    await remove(oldProgramRef);
+
+    // Move files if the category or level has changed
+    if (oldCategory !== programData.programCategory || oldLevel !== programData.level) {
+      await moveProgramFiles(oldCategory, oldLevel, programId, programData.programCategory, programData.level);
+    }
 
     // Create a new program with the updated data
     const updatedProgram = await addProgram(programData);
@@ -343,6 +313,37 @@ export const updateProgram = async (programId, programData, oldCategory, oldLeve
     return updatedProgram;
   } catch (error) {
     console.error("Error updating program:", error);
+    throw error;
+  }
+};
+
+const moveProgramFiles = async (oldCategory, oldLevel, programId, newCategory, newLevel) => {
+  const oldBasePath = `programs/${oldCategory}/${oldLevel}/${programId}`;
+  const newBasePath = `programs/${newCategory}/${newLevel}/${programId}`;
+
+  try {
+    const oldFilesRef = storageRef(storage, oldBasePath);
+    const filesList = await listAll(oldFilesRef);
+
+    for (const itemRef of filesList.items) {
+      const oldFilePath = itemRef.fullPath;
+      const fileName = itemRef.name;
+      const newFilePath = `${newBasePath}/${fileName}`;
+
+      // Download the file
+      const fileBlob = await getDownloadURL(itemRef).then(url => fetch(url).then(res => res.blob()));
+
+      // Upload to new location
+      const newFileRef = storageRef(storage, newFilePath);
+      await uploadBytes(newFileRef, fileBlob);
+
+      // Delete from old location
+      await deleteObject(itemRef);
+    }
+
+    console.log("All program files moved successfully");
+  } catch (error) {
+    console.error("Error moving program files:", error);
     throw error;
   }
 };
@@ -401,57 +402,6 @@ const deleteAllProgramFiles = async (programCategory, level, programId) => {
   }
 };
 
-const processWeeksAndExercises = async (programCategory, programId, weeks) => {
-  const processedWeeks = [];
-
-  for (let weekIndex = 0; weekIndex < weeks.length; weekIndex++) {
-    const week = weeks[weekIndex];
-    const processedDays = [];
-
-    for (let dayIndex = 0; dayIndex < week.days.length; dayIndex++) {
-      const day = week.days[dayIndex];
-      const processedWarmUp = await processExercises(programCategory, programId, weekIndex, dayIndex, 'warmUp', day.warmUp || []);
-      const processedWorkout = await processExercises(programCategory, programId, weekIndex, dayIndex, 'workout', day.workout || []);
-
-      processedDays.push({
-        ...day,
-        warmUp: processedWarmUp,
-        workout: processedWorkout,
-      });
-    }
-
-    processedWeeks.push({
-      ...week,
-      days: processedDays,
-    });
-  }
-
-  return processedWeeks;
-};
-
-const processExercises = async (programCategory, programId, weekIndex, dayIndex, type, exercises) => {
-  const processedExercises = [];
-
-  for (let exerciseIndex = 0; exerciseIndex < exercises.length; exerciseIndex++) {
-    const exercise = exercises[exerciseIndex];
-    let gifUrl = exercise.gifUrl;
-
-    if (exercise.gifFile instanceof File) {
-      const gifFileRef = storageRef(storage, `programs/${programCategory}/${programId}/week${weekIndex}/day${dayIndex}/${type}/${exerciseIndex}/${exercise.gifFile.name}`);
-      await uploadBytes(gifFileRef, exercise.gifFile);
-      gifUrl = await getDownloadURL(gifFileRef);
-    }
-
-    processedExercises.push({
-      ...exercise,
-      gifUrl,
-    });
-
-    delete processedExercises[exerciseIndex].gifFile;
-  }
-
-  return processedExercises;
-};
 
 export const getAllProgramCategories = async () => {
   try {
