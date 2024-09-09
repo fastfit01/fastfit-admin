@@ -60,7 +60,7 @@ const Meditations = () => {
   if (isLoading) {
     return (
 
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{height: '100vh'}}>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{ height: '100vh' }}>
         <CircularProgress />
       </Box>
 
@@ -77,16 +77,20 @@ const Meditations = () => {
               <Card style={{ display: 'flex', width: '100%' }}>
                 {/* Left side - Image and audio */}
                 <Box style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '30%' }}>
-                  <CardMedia
-                    component="img"
-                    image={meditation.imageUrl} // Replace with your image URL
-                    alt={meditation.title}
-                    style={{ width: 100, height: 100, borderRadius: '10%', marginTop: 16 }}
-                  />
-                  <audio controls style={{ marginTop: 8 }}>
-                    <source src={meditation.audioUrl} type="audio/mpeg" />  {/* Replace with your audio URL */}
-                    Your browser does not support the audio element.
-                  </audio>
+                  {meditation.imageUrl && (
+                    <CardMedia
+                      component="img"
+                      image={meditation.imageUrl}
+                      alt={meditation.title}
+                      style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: '10%', marginTop: 16 }}
+                    />
+                  )}
+                  {meditation.audioUrl && (
+                    <audio controls style={{ marginTop: 8, width: '90%' }}>
+                      <source src={meditation.audioUrl} type="audio/mpeg" />
+                      Your browser does not support the audio element.
+                    </audio>
+                  )}
                 </Box>
 
                 {/* Right side - Meditation details */}
@@ -96,10 +100,12 @@ const Meditations = () => {
                     secondary={
                       <>
                         <Typography component="span" variant="body2" color="textSecondary">
-                          {`Duration: ${meditation.duration} minutes | Difficulty: ${meditation.difficulty}`}
+                          {meditation.duration && `Duration: ${meditation.duration} minutes`}
+                          {meditation.duration && meditation.difficulty && ' | '}
+                          {meditation.difficulty && `Difficulty: ${meditation.difficulty}`}
                         </Typography>
                         <br />
-                        {meditation.tags.map((tag, index) => (
+                        {meditation.tags && meditation.tags.map((tag, index) => (
                           <Chip key={index} label={tag} size="small" style={{ marginRight: 4, marginBottom: 4 }} />
                         ))}
                       </>

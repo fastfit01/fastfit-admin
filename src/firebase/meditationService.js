@@ -1,94 +1,66 @@
 import { ref, push, set, get, remove, update } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from './firebaseConfig';
- 
+
 
 
 export const getMeditations = async () => {
-    const meditationsRef = ref(db, 'meditations');
-    const snapshot = await get(meditationsRef);
-    const meditations = [];
-    snapshot.forEach((childSnapshot) => {
-      meditations.push({ id: childSnapshot.key, ...childSnapshot.val() });
-    });
-    return meditations;
+  const meditationsRef = ref(db, 'meditations');
+  const snapshot = await get(meditationsRef);
+  const meditations = [];
+  snapshot.forEach((childSnapshot) => {
+    meditations.push({ id: childSnapshot.key, ...childSnapshot.val() });
+  });
+  return meditations;
+};
+
+export const addMeditation = async (meditationData) => {
+  const meditationsRef = ref(db, 'meditations');
+  const newMeditationRef = push(meditationsRef);
+
+  const { audioFile, imageFile, ...otherData } = meditationData;
+
+  const newMeditation = {
+    ...otherData,
+    createdAt: Date.now() / 1000,
   };
-  
-  export const addMeditation = async ({ title, duration, audioFile, category, description, difficulty, imageUrl, tags }) => {
-    const meditationsRef = ref(db, 'meditations');
-    const newMeditationRef = push(meditationsRef);
-    
-    let audioUrl = '';
-    let imageDownloadUrl = '';
 
-    // Upload Audio File (if any)
-    if (audioFile) {
-        const audioFileRef = storageRef(storage, `meditations/${newMeditationRef.key}/audio/${audioFile.name}`);
-        await uploadBytes(audioFileRef, audioFile);
-        audioUrl = await getDownloadURL(audioFileRef);
-    }
+  if (audioFile) {
+    newMeditation.audioUrl = await uploadFile(newMeditationRef.key, 'audio', audioFile);
+  }
 
-    // Upload Image File (if any)
-    if (imageUrl && typeof imageUrl !== 'string') { // Check if it's a file, not a string
-        const imageFileRef = storageRef(storage, `meditations/${newMeditationRef.key}/image/${imageUrl.name}`);
-        await uploadBytes(imageFileRef, imageUrl);
-        imageDownloadUrl = await getDownloadURL(imageFileRef);
-    }
+  if (imageFile) {
+    newMeditation.imageUrl = await uploadFile(newMeditationRef.key, 'image', imageFile);
+  }
 
-    const newMeditation = {
-        title,
-        duration,
-        audioUrl,
-        category,
-        description,
-        difficulty,
-        imageUrl: imageDownloadUrl || '', // Save the image download URL to the database
-        tags,
-        createdAt: Date.now() / 1000, // Current timestamp in seconds
-    };
-
-    await set(newMeditationRef, newMeditation);
-
-    return { id: newMeditationRef.key, ...newMeditation };
+  await set(newMeditationRef, newMeditation);
+  return { id: newMeditationRef.key, ...newMeditation };
 };
 
-export const updateMeditation = async (id, { title, duration, audioFile, category, description, difficulty, imageUrl, tags }) => {
-    const meditationRef = ref(db, `meditations/${id}`);
- 
-    
-    let audioUrl = '';
-    let imageDownloadUrl = imageUrl; // Keep the existing image URL if no new file is uploaded
+export const updateMeditation = async (id, meditationData) => {
+  const meditationRef = ref(db, `meditations/${id}`);
 
-    // Upload Audio File (if any)
-    if (audioFile) {
-        const audioFileRef = storageRef(storage, `meditations/${id}/audio/${audioFile.name}`);
-        await uploadBytes(audioFileRef, audioFile);
-        audioUrl = await getDownloadURL(audioFileRef);
-    }
+  const { audioFile, imageFile, ...otherData } = meditationData;
 
-    // Upload Image File (if any)
-    if (imageUrl && typeof imageUrl !== 'string') { // Check if it's a file, not a string
-        const imageFileRef = storageRef(storage, `meditations/${id}/image/${imageUrl.name}`);
-        await uploadBytes(imageFileRef, imageUrl);
-        imageDownloadUrl = await getDownloadURL(imageFileRef);
-    }
+  const updatedMeditation = { ...otherData };
 
-    const updatedMeditation = {
-        title,
-        duration,
-        ...(audioUrl && { audioUrl }), // Add audio URL only if it exists
-        category,
-        description,
-        difficulty,
-        imageUrl: imageDownloadUrl, // Update the image URL
-        tags,
-    };
+  if (audioFile) {
+    updatedMeditation.audioUrl = await uploadFile(id, 'audio', audioFile);
+  }
 
-    await update(meditationRef, updatedMeditation);
+  if (imageFile) {
+    updatedMeditation.imageUrl = await uploadFile(id, 'image', imageFile);
+  }
 
-    return { id, ...updatedMeditation };
+  await update(meditationRef, updatedMeditation);
+  return { id, ...updatedMeditation };
 };
 
+const uploadFile = async (meditationId, fileType, file) => {
+  const fileRef = storageRef(storage, `meditations/${meditationId}/${fileType}/${file.name}`);
+  await uploadBytes(fileRef, file);
+  return await getDownloadURL(fileRef);
+};
 
 export const deleteMeditation = async (id) => {
   const meditationRef = ref(db, `meditations/${id}`);
