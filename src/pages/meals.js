@@ -6,7 +6,6 @@ import EditMealsDialog from '../components/EditMealsDialog';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
-import SearchField from '../components/SearchField';
 
 const Meals = () => {
   const [meals, setMeals] = useState([]);
@@ -14,23 +13,23 @@ const Meals = () => {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchMeals = async () => {
     setIsLoading(true);
     try {
       const fetchedMeals = await getMeals();
-      setMeals(fetchedMeals);
+       setMeals(fetchedMeals);
     } catch (error) {
       console.error("Error fetching meals:", error);
     } finally {
       setIsLoading(false);
     }
   };
-
+  
   useEffect(() => {
     fetchMeals();
   }, []);
+
 
   const handleAddMeal = () => {
     setOpenAddDialog(true);
@@ -86,12 +85,6 @@ const Meals = () => {
     setSelectedMeal(null);
   };
 
-  const filteredMeals = meals.filter(meal =>
-    meal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    meal.dietType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    meal.mealTime.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{ height: '100vh' }}>
@@ -107,13 +100,8 @@ const Meals = () => {
           <Typography variant="h4" gutterBottom sx={{ mt: 4, mb: 3 }}>
             Meals
           </Typography>
-          <SearchField
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search meals..."
-          />
           <Grid container spacing={2}>
-            {filteredMeals.map((meal) => (
+            {meals.map((meal) => (
               <Grid item xs={12} sm={6} md={4} lg={3} key={meal.id}>
                 <Card sx={{ 
                   display: 'flex', 

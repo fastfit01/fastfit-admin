@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Grid, Fab, Box, Card, CardContent, CardMedia, IconButton, Chip, CircularProgress, Container, Tooltip } from '@mui/material';
+import { Typography, Grid, Fab, Box, Card, CardContent, CardMedia, CardActions, IconButton, Chip, CircularProgress, Container, Tooltip } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import Layout from '../components/Layout';
 import AddProgramsDialog from '../components/AddProgramDialog';
 import EditProgramsDialog from '../components/EditProgramsDialog';
 import { getPrograms, deleteProgram } from '../firebase/programsService';
-import SearchField from '../components/SearchField';
 
 const Programs = () => {
   const [programs, setPrograms] = useState([]);
@@ -14,7 +13,6 @@ const Programs = () => {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchPrograms = async () => {
@@ -77,12 +75,6 @@ const Programs = () => {
     }
   };
 
-  const filteredPrograms = programs.filter(program =>
-    program.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    program.level.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    program.guidedOrSelfGuidedProgram.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{height: '100vh'}}>
@@ -98,13 +90,8 @@ const Programs = () => {
           <Typography variant="h4" gutterBottom sx={{ mt: 4, mb: 3 }}>
             Fitness Programs
           </Typography>
-          <SearchField
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search programs..."
-          />
           <Grid container spacing={2}>
-            {filteredPrograms.map((program) => (
+            {programs.map((program) => (
               <Grid item xs={12} sm={6} md={4} lg={3} key={program.id}>
                 <Card sx={{ 
                   display: 'flex', 
