@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Grid, Fab, Box, Card, CardContent, CardMedia, CardActions, IconButton, Chip, CircularProgress } from '@mui/material';
+import { Typography, Grid, Fab, Box, Card, CardContent, CardMedia, CardActions, IconButton, Chip, CircularProgress, Container, Tooltip } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import Layout from '../components/Layout';
@@ -86,54 +86,96 @@ const Programs = () => {
   return (
     <ProtectedRoute>
       <Layout>
-        <Typography variant="h4" gutterBottom>Fitness Programs</Typography>
-        <Grid container spacing={2}>
-          {programs.map((program) => (
-            <Grid item xs={12} sm={6} md={4} key={program.id}>
-              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <CardMedia
-                  component="img"
-                  height="120"
-                  image={program.programImageUrl || 'https://via.placeholder.com/120x120?text=No+Image'}
-                  alt={program.title}
-                />
-                <CardContent sx={{ flexGrow: 1, pb: 1 }}>
-                  <Typography variant="h6" component="div" noWrap>
-                    {program.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" noWrap>
-                    Duration: {program.duration}
-                  </Typography>
-                  <Box mt={1} display="flex" flexWrap="wrap" gap={0.5}>
-                    <Chip label={program.level} size="small" />
-                    <Chip label={program.guidedOrSelfGuidedProgram} size="small" />
+        <Container maxWidth="lg">
+          <Typography variant="h4" gutterBottom sx={{ mt: 4, mb: 3 }}>
+            Fitness Programs
+          </Typography>
+          <Grid container spacing={2}>
+            {programs.map((program) => (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={program.id}>
+                <Card sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  height: '100%',
+                  maxHeight: '300px',
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
+                  '&:hover': {
+                    transform: 'scale(1.03)',
+                    boxShadow: '0 8px 16px 0 rgba(0,0,0,0.2)',
+                  },
+                }}>
+                  <CardMedia
+                    component="img"
+                    height="140"
+                    image={program.programImageUrl || 'https://via.placeholder.com/140x140?text=No+Image'}
+                    alt={program.title}
+                    sx={{ objectFit: 'cover' }}
+                  />
+                  <CardContent sx={{ flexGrow: 1, p: 1.5, overflow: 'auto' }}>
+                    <Typography variant="subtitle1" component="div" noWrap>
+                      {program.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                      Duration: {program.duration}
+                    </Typography>
+                    <Box sx={{ mb: 0.5 }}>
+                      <Chip 
+                        label={program.level} 
+                        size="small" 
+                        sx={{ mr: 0.5, mb: 0.5, fontSize: '0.6rem', height: '16px' }} 
+                      />
+                      <Chip 
+                        label={program.guidedOrSelfGuidedProgram} 
+                        size="small" 
+                        sx={{ mr: 0.5, mb: 0.5, fontSize: '0.6rem', height: '16px' }} 
+                      />
+                    </Box>
+                  </CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 0.5 }}>
+                    <Tooltip title="Edit">
+                      <IconButton size="small" onClick={() => handleEditClick(program)}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete">
+                      <IconButton size="small" onClick={() => handleDeleteClick(program.id, program.programCategory, program.level)}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </Box>
-                </CardContent>
-                <CardActions disableSpacing sx={{ mt: 'auto', pt: 0 }}>
-                  <IconButton aria-label="edit" onClick={() => handleEditClick(program)} size="small">
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton aria-label="delete" onClick={() => handleDeleteClick(program.id, program.programCategory, program.level)} size="small">
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </CardActions>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-        <Box sx={{ position: 'fixed', bottom: 16, right: 16 }}>
-          <Fab color="primary" aria-label="add" onClick={handleAddClick}>
-            <AddIcon />
-          </Fab>
-        </Box>
-        <AddProgramsDialog open={openAddDialog} onClose={handleAddDialogClose} />
-        {selectedProgram && (
-          <EditProgramsDialog
-            open={openEditDialog}
-            onClose={handleEditDialogClose}
-            program={selectedProgram}
-          />
-        )}
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+          <Tooltip title="Add new program">
+            <Fab 
+              color="primary" 
+              aria-label="add"
+              onClick={handleAddClick}
+              sx={{
+                position: 'fixed',
+                bottom: 16,
+                right: 16,
+                transition: 'transform 0.3s ease-in-out',
+                '&:hover': {
+                  transform: 'scale(1.1)',
+                },
+              }}
+            >
+              <AddIcon />
+            </Fab>
+          </Tooltip>
+          <AddProgramsDialog open={openAddDialog} onClose={handleAddDialogClose} />
+          {selectedProgram && (
+            <EditProgramsDialog
+              open={openEditDialog}
+              onClose={handleEditDialogClose}
+              program={selectedProgram}
+            />
+          )}
+        </Container>
       </Layout>
     </ProtectedRoute>
   );
