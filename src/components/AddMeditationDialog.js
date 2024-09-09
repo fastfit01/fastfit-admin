@@ -1,33 +1,52 @@
 import React, { useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, CircularProgress } from '@mui/material';
+import {
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TextField,
+    Button,
+    Select,
+    MenuItem,
+    InputLabel,
+    FormControl,
+    Chip,
+    Box,
+    CircularProgress
+} from '@mui/material';
 import { addMeditation } from '../firebase/meditationService';
 
 const AddMeditationDialog = ({ open, onClose }) => {
-    const [title, setTitle] = useState('');
-    const [duration, setDuration] = useState('');
+    const [formData, setFormData] = useState({
+        title: '',
+        duration: '',
+        category: '',
+        description: '',
+        difficulty: '',
+        tags: [],
+        currentTag: '',
+    });
     const [audioFile, setAudioFile] = useState(null);
-    const [category, setCategory] = useState('');
-    const [description, setDescription] = useState('');
-    const [difficulty, setDifficulty] = useState('');
-    const [imageUrl, setImageUrl] = useState('');
-    const [tags, setTags] = useState([]);
-    const [currentTag, setCurrentTag] = useState('');
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prevData => ({ ...prevData, [name]: value }));
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (title && duration && category && description && difficulty) {
+        const { title, duration, category, description, difficulty, tags } = formData;
+        if (title) {
             try {
-                setIsLoading(!false);
+                setIsLoading(true);
                 const newMeditation = await addMeditation({
-                    title,
-                    duration: parseInt(duration),
+                    ...formData,
+                    duration: duration ? parseFloat(duration) : null,
                     audioFile,
-                    category,
-                    description,
-                    difficulty,
-                    imageUrl,
+                    imageFile,
                     tags
                 });
                 onClose(newMeditation);
@@ -40,20 +59,36 @@ const AddMeditationDialog = ({ open, onClose }) => {
     };
 
     const handleAddTag = () => {
+        const { currentTag, tags } = formData;
         if (currentTag && !tags.includes(currentTag)) {
-            setTags([...tags, currentTag]);
-            setCurrentTag('');
+            setFormData(prevData => ({
+                ...prevData,
+                tags: [...prevData.tags, currentTag],
+                currentTag: ''
+            }));
         }
     };
 
     const handleDeleteTag = (tagToDelete) => {
-        setTags(tags.filter(tag => tag !== tagToDelete));
+        setFormData(prevData => ({
+            ...prevData,
+            tags: prevData.tags.filter(tag => tag !== tagToDelete)
+        }));
     };
 
+    const handleFileChange = (e, type) => {
+        const file = e.target.files[0];
+        if (type === 'image') {
+            setImageFile(file);
+            setImagePreview(URL.createObjectURL(file));
+        } else {
+            setAudioFile(file);
+        }
+    };
 
     if (isLoading) {
         return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{ height: '100vh' }}>
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
                 <CircularProgress />
             </Box>
         );
@@ -62,117 +97,115 @@ const AddMeditationDialog = ({ open, onClose }) => {
     return (
         <Dialog open={open} onClose={() => onClose()} maxWidth="sm" fullWidth>
             <DialogTitle>Add New Meditation</DialogTitle>
-            <DialogContent sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap:"8px"
-            }}>
-                <TextField
-                    autoFocus
-                    margin="dense"
-                    label="Meditation Title"
-                    type="text"
-                    fullWidth
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                />
-                <TextField
-                    margin="dense"
-                    label="Duration (minutes)"
-                    type="number"
-                    fullWidth
-                    value={duration}
-                    onChange={(e) => setDuration(e.target.value)}
-                />
-                <FormControl fullWidth margin="dense">
-                    <InputLabel sx={{ mt: "-8px" }}>Category</InputLabel>
-                    <Select
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                    >
-                        <MenuItem value="focus">Focus</MenuItem>
-                        <MenuItem value="relaxation">Relaxation</MenuItem>
-                        <MenuItem value="sleep">Sleep</MenuItem>
-                    </Select>
-                </FormControl>
-                <TextField
-                    margin="dense"
-                    label="Description"
-                    type="text"
-                    fullWidth
-                    multiline
-                    rows={4}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                />
-                <FormControl fullWidth margin="dense">
-                    <InputLabel sx={{ mt: "-8px" }}>Difficulty</InputLabel>
-                    <Select
-                        value={difficulty}
-                        onChange={(e) => setDifficulty(e.target.value)}
-                    >
-                        <MenuItem value="easy">Easy</MenuItem>
-                        <MenuItem value="medium">Medium</MenuItem>
-                        <MenuItem value="hard">Hard</MenuItem>
-                    </Select>
-                </FormControl>
-
-                {/* Image Upload and Preview */}
-                <input
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                    id="image-upload"
-                    type="file"
-                    onChange={(e) => setImageUrl(URL.createObjectURL(e.target.files[0]))} // Preview the image
-                />
-                <label htmlFor="image-upload">
-                    <Button variant="contained" component="span" fullWidth style={{ marginTop: 16 }}>
-                        Upload Image
-                    </Button>
-                </label>
-                {imageUrl && <img src={imageUrl} alt="Uploaded" style={{ width: '100%', marginTop: 16 }} />}
-
-                {/* Tags */}
-                <Box mt={2}>
+            <DialogContent>
+                <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
                     <TextField
-                        label="Add Tag"
-                        value={currentTag}
-                        onChange={(e) => setCurrentTag(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
+                        required
+                        autoFocus
+                        label="Meditation Title"
+                        name="title"
+                        value={formData.title}
+                        onChange={handleChange}
+                        fullWidth
                     />
-                    <Button onClick={handleAddTag}>Add Tag</Button>
-                </Box>
-                <Box mt={1}>
-                    {tags.map((tag, index) => (
-                        <Chip
-                            key={index}
-                            label={tag}
-                            onDelete={() => handleDeleteTag(tag)}
-                            style={{ margin: 4 }}
-                        />
-                    ))}
-                </Box>
+                    <TextField
+                        label="Duration"
+                        name="duration"
+                        value={formData.duration}
+                        onChange={handleChange}
+                        fullWidth
+                    />
+                    <FormControl fullWidth>
+                        <InputLabel sx={{ mt: "-8px" }}>Category</InputLabel>
+                        <Select
+                            name="category"
+                            value={formData.category}
+                            onChange={handleChange}
+                        >
+                            <MenuItem value="focus">Focus</MenuItem>
+                            <MenuItem value="relaxation">Relaxation</MenuItem>
+                            <MenuItem value="sleep">Sleep</MenuItem>
+                        </Select>
+                    </FormControl>
+                    <TextField
+                        label="Description"
+                        name="description"
+                        value={formData.description}
+                        onChange={handleChange}
+                        multiline
+                        rows={4}
+                        fullWidth
+                    />
+                    <FormControl fullWidth>
+                        <InputLabel sx={{ mt: "-8px" }}>Difficulty</InputLabel>
+                        <Select
+                            name="difficulty"
+                            value={formData.difficulty}
+                            onChange={handleChange}
+                        >
+                            <MenuItem value="easy">Easy</MenuItem>
+                            <MenuItem value="medium">Medium</MenuItem>
+                            <MenuItem value="hard">Hard</MenuItem>
+                        </Select>
+                    </FormControl>
 
-                {/* Audio Upload and Preview */}
-                <input
-                    accept="audio/*"
-                    style={{ display: 'none' }}
-                    id="raised-button-file"
-                    type="file"
-                    onChange={(e) => setAudioFile(e.target.files[0])}
-                />
-                <label htmlFor="raised-button-file">
-                    <Button variant="contained" component="span" fullWidth style={{ marginTop: 16 }}>
-                        Upload Audio File
-                    </Button>
-                </label>
-                {audioFile && <p>{audioFile.name}</p>}
-                {audioFile && (
-                    <audio controls style={{ marginTop: 8 }}>
-                        <source src={URL.createObjectURL(audioFile)} type="audio/mpeg" />
-                        Your browser does not support the audio element.
-                    </audio>
-                )}
+                    <input
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        id="image-upload"
+                        type="file"
+                        onChange={(e) => handleFileChange(e, 'image')}
+                    />
+                    <label htmlFor="image-upload">
+                        <Button variant="contained" component="span" fullWidth>
+                            Upload Image
+                        </Button>
+                    </label>
+                    {imagePreview && <img src={imagePreview} alt="Uploaded" style={{ width: '100%', marginTop: 16 }} />}
+
+                    <Box>
+                        <TextField
+                            label="Add Tag"
+                            name="currentTag"
+                            value={formData.currentTag}
+                            onChange={handleChange}
+                            onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
+                        />
+                        <Button onClick={handleAddTag}>Add Tag</Button>
+                    </Box>
+                    <Box>
+                        {formData.tags.map((tag, index) => (
+                            <Chip
+                                key={index}
+                                label={tag}
+                                onDelete={() => handleDeleteTag(tag)}
+                                style={{ margin: 4 }}
+                            />
+                        ))}
+                    </Box>
+
+                    <input
+                        accept="audio/*"
+                        style={{ display: 'none' }}
+                        id="audio-upload"
+                        type="file"
+                        onChange={(e) => handleFileChange(e, 'audio')}
+                    />
+                    <label htmlFor="audio-upload">
+                        <Button variant="contained" component="span" fullWidth>
+                            Upload Audio File
+                        </Button>
+                    </label>
+                    {audioFile && (
+                        <>
+                            <p>{audioFile.name}</p>
+                            <audio controls style={{ width: '100%' }}>
+                                <source src={URL.createObjectURL(audioFile)} type="audio/mpeg" />
+                                Your browser does not support the audio element.
+                            </audio>
+                        </>
+                    )}
+                </Box>
             </DialogContent>
             <DialogActions>
                 <Button onClick={() => onClose()}>Cancel</Button>
