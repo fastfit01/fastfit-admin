@@ -9,9 +9,11 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
     const [category, setCategory] = useState('');
     const [description, setDescription] = useState('');
     const [difficulty, setDifficulty] = useState('');
-    const [imageUrl, setImageUrl] = useState('');
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState('');
     const [tags, setTags] = useState([]);
     const [currentTag, setCurrentTag] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         if (meditation) {
@@ -19,20 +21,18 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
             setDuration(meditation.duration.toString());
             setCategory(meditation.category);
             setDescription(meditation.description);
-            setDifficulty(meditation.difficulty);
-            setImageUrl(meditation.imageUrl);
-            setTags(meditation.tags);
+            setDifficulty(meditation.difficulty || ''); // Set default to empty string if undefined
+            setImagePreview(meditation.imageUrl);
+            setTags(meditation.tags || []);
         }
+
+        console.log("meditation", meditation);
     }, [meditation]);
-
-    const [isLoading, setIsLoading] = useState(false);
-
-
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsLoading(!false);
-        if (title && duration && category && description && difficulty) {
+        setIsLoading(true);
+        if (title) {
             const updatedMeditation = await updateMeditation(meditation.id, {
                 title,
                 duration: parseInt(duration),
@@ -40,7 +40,7 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
                 category,
                 description,
                 difficulty,
-                imageUrl,
+                imageFile,
                 tags
             });
             onClose(updatedMeditation);
@@ -59,13 +59,23 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
         setTags(tags.filter(tag => tag !== tagToDelete));
     };
 
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setImageFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     if (isLoading) {
         return (
-
             <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{height: '100vh'}}>
                 <CircularProgress />
             </Box>
-
         );
     }
 
@@ -101,20 +111,41 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
                         <MenuItem value="sleep">Sleep</MenuItem>
                     </Select>
                 </FormControl>
+                <TextField
+                    margin="dense"
+                    label="Description"
+                    type="text"
+                    fullWidth
+                    multiline
+                    rows={4}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                />
+                  <FormControl fullWidth margin="dense">
+                    <InputLabel sx={{ mt: "-8px" }}>Difficulty</InputLabel>
+                    <Select
+                        name="difficulty"
+                        value={difficulty}
+                        onChange={(e) => setDifficulty(e.target.value)}
+                    >
+                        <MenuItem value="easy">Easy</MenuItem>
+                        <MenuItem value="medium">Medium</MenuItem>
+                        <MenuItem value="hard">Hard</MenuItem>
+                    </Select>
+                </FormControl>
                 <input
                     accept="image/*"
                     style={{ display: 'none' }}
                     id="image-upload"
                     type="file"
-                    onChange={(e) => setImageUrl(e.target.files[0])} // Save the image file
+                    onChange={handleImageChange}
                 />
                 <label htmlFor="image-upload">
-                    <Button variant="raised" component="span" fullWidth style={{ marginTop: 16 }}>
+                    <Button variant="outlined" component="span" fullWidth style={{ marginTop: 16 }}>
                         Upload Image
                     </Button>
                 </label>
-                {imageUrl && typeof imageUrl === 'string' && <img src={imageUrl} alt="Uploaded" width="100%" />}
-                {imageUrl && typeof imageUrl !== 'string' && <p>{imageUrl.name}</p>}
+                {imagePreview && <img src={imagePreview} alt="Preview" style={{ width: '100%', marginTop: 8 }} />}
                 <Box mt={2}>
                     <TextField
                         label="Add Tag"
@@ -142,7 +173,7 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
                     onChange={(e) => setAudioFile(e.target.files[0])}
                 />
                 <label htmlFor="raised-button-file">
-                    <Button variant="raised" component="span" fullWidth style={{ marginTop: 16 }}>
+                    <Button variant="outlined" component="span" fullWidth style={{ marginTop: 16 }}>
                         Upload Audio File
                     </Button>
                 </label>
@@ -150,12 +181,12 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
 
                 {/* Audio Preview */}
                 {audioFile ? (
-                    <audio controls style={{ marginTop: 8 }}>
+                    <audio controls style={{ marginTop: 8, width: '100%' }}>
                         <source src={URL.createObjectURL(audioFile)} type="audio/mpeg" />
                         Your browser does not support the audio element.
                     </audio>
                 ) : meditation.audioUrl ? (
-                    <audio controls style={{ marginTop: 8 }}>
+                    <audio controls style={{ marginTop: 8, width: '100%' }}>
                         <source src={meditation.audioUrl} type="audio/mpeg" />
                         Your browser does not support the audio element.
                     </audio>
