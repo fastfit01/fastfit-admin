@@ -147,6 +147,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                     reps: '',
                     rest: '',
                     tempo: '',
+                    duration: '',
                     gifUrl: null,
                     gifFile: null
                 });
@@ -680,23 +681,28 @@ const AddProgramsDialog = ({ open, onClose }) => {
                                                 }}>
                                                     <TextField
                                                         label="Exercise Name"
-                                                        value={exercise.name}
+                                                        value={exercise?.name}
                                                         onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'name', e.target.value)}
                                                     />
                                                     <TextField
                                                         label="Reps"
-                                                        value={exercise.reps}
+                                                        value={exercise?.reps}
                                                         onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'reps', e.target.value)}
                                                     />
                                                     <TextField
                                                         label="Rest"
-                                                        value={exercise.rest}
+                                                        value={exercise?.rest}
                                                         onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'rest', e.target.value)}
                                                     />
                                                     <TextField
                                                         label="Tempo"
-                                                        value={exercise.tempo}
+                                                        value={exercise?.tempo}
                                                         onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'tempo', e.target.value)}
+                                                    />
+                                                     <TextField
+                                                        label="Duration"
+                                                        value={exercise?.duration}
+                                                        onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'duration', e.target.value)}
                                                     />
                                                     <input
                                                         accept="image/*"
