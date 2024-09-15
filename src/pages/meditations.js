@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Typography,
-  List,
-  IconButton,
   Fab,
   Box,
   Chip,
@@ -13,6 +11,7 @@ import {
   Grid,
   Container,
   Tooltip,
+  IconButton,
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import { ProtectedRoute } from '../components/ProtectedRoute';
@@ -20,6 +19,7 @@ import Layout from '../components/Layout';
 import AddMeditationDialog from '../components/AddMeditationDialog';
 import EditMeditationDialog from '../components/EditMeditationDialog';
 import { getMeditations, deleteMeditation } from '../firebase/meditationService';
+import SearchField from '../components/SearchField';
 
 const Meditations = () => {
   const [meditations, setMeditations] = useState([]);
@@ -27,6 +27,7 @@ const Meditations = () => {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedMeditation, setSelectedMeditation] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchMeditations = useCallback(async () => {
     setIsLoading(true);
@@ -82,6 +83,11 @@ const Meditations = () => {
     setSelectedMeditation(null);
   };
 
+  const filteredMeditations = meditations.filter(meditation =>
+    meditation.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (meditation.tags && meditation.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())))
+  );
+
   if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
@@ -97,8 +103,13 @@ const Meditations = () => {
           <Typography variant="h4" gutterBottom sx={{ mt: 4, mb: 3 }}>
             Meditations
           </Typography>
+          <SearchField
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search meditations..."
+          />
           <Grid container spacing={2}>
-            {meditations.map((meditation) => (
+            {filteredMeditations.map((meditation) => (
               <Grid item xs={12} sm={6} md={4} lg={3} key={meditation.id}>
                 <Card sx={{ 
                   display: 'flex', 
