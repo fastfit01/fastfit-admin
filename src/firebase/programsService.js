@@ -55,6 +55,7 @@ export const getPrograms = async () => {
                     reps: exercise?.reps,
                     rest: exercise?.rest,
                     tempo: exercise?.tempo,
+                    duration: exercise?.duration,
                     gifUrl: exercise?.gifUrl
                   }))
                 })),
@@ -248,10 +249,11 @@ const transformWeeks = (weeks) => {
           })),
           workout: day.workout.reduce((setAcc, set, setIndex) => {
             setAcc[`set${setIndex + 1}`] = set.exercises.map(exercise => ({
-              name: exercise.name,
-              reps: exercise.reps,
-              rest: exercise.rest,
-              tempo: exercise.tempo,
+              name: exercise?.name,
+              reps: exercise?.reps,
+              rest: exercise?.rest,
+              tempo: exercise?.tempo,
+              duration: exercise?.duration,
               gifUrl: exercise.gifUrl
             }));
             return setAcc;
