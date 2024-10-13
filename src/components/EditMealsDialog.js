@@ -6,6 +6,7 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
   const [dietTypes, setDietTypes] = useState([]);
   const [newDietType, setNewDietType] = useState('');
   const [dietTypeCoverImage, setDietTypeCoverImage] = useState(null);
+  const [isDietTypeImageLoading, setIsDietTypeImageLoading] = useState(false);  
 
   const [editedMeal, setEditedMeal] = useState({
     id: mealId || '',
@@ -78,7 +79,7 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
   const handleDietTypeCoverImageUpload = async (e) => {
     const file = e.target.files[0];
     if (file && editedMeal.dietType) {
-      setIsLoading(true);
+      setIsDietTypeImageLoading(true);    
       try {
         const imageUrl = await updateDietTypeCoverImage(editedMeal.dietType, file);
         setDietTypeCoverImage(imageUrl);
@@ -88,7 +89,7 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
       } catch (error) {
         console.error("Error uploading diet type cover image:", error);
       } finally {
-        setIsLoading(false);
+        setIsDietTypeImageLoading(false);
       }
     }
   };
@@ -101,7 +102,7 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
       if (updatedMeal.imageFile) {
         const imageUrl = await uploadImageAndGetURL(
           updatedMeal.imageFile,
-          `meals/${updatedMeal.dietType}/mealsData/${updatedMeal.mealTime}/${updatedMeal.id || ''}`
+          `meals/${updatedMeal.dietType}/mealsData/${updatedMeal.mealTime}/${updatedMeal.id}`
         );
         updatedMeal.imageUrl = imageUrl;
       }
@@ -116,7 +117,6 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
       console.error("Error updating meal:", error);
     } finally {
       setIsLoading(false);
-      
     }
   };
 
@@ -248,7 +248,7 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
                 component="label"
                 disabled={!editedMeal.dietType}
               >
-                Upload Diet Type Cover Image
+                {isDietTypeImageLoading ? 'Uploading...' : 'Upload Diet Type Cover Image'}
                 <input type="file" hidden onChange={handleDietTypeCoverImageUpload} accept="image/*" />
               </Button>
               {dietTypeCoverImage && (

@@ -38,6 +38,7 @@ const AddMealsDialog = ({ open, onClose }) => {
   const [newDietType, setNewDietType] = useState('');
   const [isAddingDietType, setIsAddingDietType] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDietTypeImageLoading, setIsDietTypeImageLoading] = useState(false);
   const [dietTypeCoverImage, setDietTypeCoverImage] = useState(null);
 
   useEffect(() => {
@@ -72,7 +73,7 @@ const AddMealsDialog = ({ open, onClose }) => {
 
   const handleDietTypeImageUpload = async (e) => {
     const file = e.target.files[0];
-    setIsLoading(true);
+    setIsDietTypeImageLoading(true);
     try {
       const imageUrl = await updateDietTypeCoverImage(meal.dietType, file);
       setDietTypeCoverImage(imageUrl);
@@ -83,7 +84,7 @@ const AddMealsDialog = ({ open, onClose }) => {
     } catch (error) {
       console.error("Error uploading diet type cover image:", error);
     } finally {
-      setIsLoading(false);
+      setIsDietTypeImageLoading(false);
     }
   };
 
@@ -279,7 +280,7 @@ const AddMealsDialog = ({ open, onClose }) => {
               />
               <label htmlFor="diet-cover-image-upload">
                 <Button variant="contained" component="span" disabled={!meal.dietType}>
-                  Upload Diet Cover Image
+                 { isDietTypeImageLoading ? 'Uploading...' : 'Upload Diet Cover Image'}
                 </Button>
               </label>
               {dietTypeCoverImage && (
