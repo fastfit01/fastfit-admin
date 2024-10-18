@@ -83,6 +83,7 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
         <Dialog open={open} onClose={() => onClose()} maxWidth="sm" fullWidth>
             <DialogTitle>Edit Meditation</DialogTitle>
             <DialogContent>
+            <Box  sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>    
                 <TextField
                     autoFocus
                     margin="dense"
@@ -94,14 +95,13 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
                 />
                 <TextField
                     margin="dense"
-                    label="Duration (minutes)"
-                    type="number"
+                    label="Duration"
                     fullWidth
                     value={duration}
                     onChange={(e) => setDuration(e.target.value)}
                 />
-                <FormControl fullWidth margin="dense">
-                    <InputLabel>Category</InputLabel>
+                <FormControl fullWidth margin="dense" >
+                    <InputLabel sx={{ mt: "-8px" }}>Category</InputLabel>
                     <Select
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
@@ -191,6 +191,9 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
                         Your browser does not support the audio element.
                     </audio>
                 ) : null}
+            
+            </Box>
+            
             </DialogContent>
             <DialogActions>
                 <Button onClick={() => onClose()}>Cancel</Button>
