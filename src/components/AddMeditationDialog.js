@@ -54,6 +54,18 @@ const AddMeditationDialog = ({ open, onClose }) => {
                 console.error('Error adding meditation:', error);
             } finally {
                 setIsLoading(false);
+                setFormData({
+                    title: '',
+                    duration: '',
+                    category: '',
+                    description: '',
+                    difficulty: '',
+                    tags: [],
+                    currentTag: '',
+                });
+                setAudioFile(null);
+                setImageFile(null);
+                setImagePreview('');
             }
         }
     };
