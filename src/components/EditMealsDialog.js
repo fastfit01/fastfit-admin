@@ -100,11 +100,13 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
     try {
       let updatedMeal = { ...editedMeal };
       if (updatedMeal.imageFile) {
-        const imageUrl = await uploadImageAndGetURL(
+        const downloadURL = await uploadImageAndGetURL(
           updatedMeal.imageFile,
-          `meals/${updatedMeal.dietType}/mealsData/${updatedMeal.mealTime}/${updatedMeal.id}`
+          updatedMeal.dietType,
+          updatedMeal.mealTime,
+          updatedMeal.id
         );
-        updatedMeal.imageUrl = imageUrl;
+        updatedMeal.imageUrl = downloadURL;
       }
       const newMeal = await updateMeal(
         updatedMeal.id,

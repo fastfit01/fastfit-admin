@@ -115,7 +115,9 @@ const AddMealsDialog = ({ open, onClose }) => {
     if (imageFile) {
       imageUrl = await uploadImageAndGetURL(
         imageFile,
-        `meals/${dietType}/mealsData/${mealTime}/${id}`
+        dietType,
+        mealTime,
+        id
       );
     }
 
@@ -137,7 +139,17 @@ const AddMealsDialog = ({ open, onClose }) => {
       console.error('Error adding meal:', error);
     } finally {
       setIsLoading(false);
-      setMeal("");
+      setMeal({
+        id: uuidv4(),
+        dietType: '',
+        mealTime: '',
+        name: '',
+        ingredients: '',
+        instructions: '',
+        imageUrl: null,
+        imageFile: null,
+        mealDuration: ''
+      });
     }
   };
 

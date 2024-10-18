@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Grid, Card, CardContent, Typography, CardMedia, Fab, IconButton, Box, CircularProgress, Container, Tooltip } from '@mui/material';
-import { getMeals, deleteMeal, updateMeal } from '../firebase/mealsService'; // Updated import path
-import AddMealsDialog from '../components/addMealsDialog'; // Note the capitalization
+import { getMeals, deleteMeal, updateMeal } from '../firebase/mealsService';  
+import AddMealsDialog from '../components/addMealsDialog';  
 import EditMealsDialog from '../components/EditMealsDialog';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
@@ -55,17 +55,16 @@ const Meals = () => {
     }
   };
 
-  const handleAddDialogClose = (newMeal) => {  
+  const handleAddDialogClose = async (newMeal) => {  
     setOpenAddDialog(false);
-  
     if (newMeal) {
       setIsLoading(true);
       try {
-        setMeals([...meals, newMeal]);
+        await fetchMeals();  
       } catch (error) {
-        console.error("Error adding program:", error);
-      }finally{
-        setIsLoading(!true);
+        console.error("Error adding meal:", error);
+      } finally {
+        setIsLoading(false);
       }   
     } 
   };
@@ -92,14 +91,6 @@ const Meals = () => {
     meal.mealTime.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (isLoading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{ height: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
     <ProtectedRoute>
       <Layout>
@@ -112,53 +103,59 @@ const Meals = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search meals..."
           />
-          <Grid container spacing={2}>
-            {filteredMeals.map((meal) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={meal.id}>
-                <Card sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  height: '100%',
-                  maxHeight: '300px',
-                  borderRadius: '16px',
-                  overflow: 'hidden',
-                  transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
-                  '&:hover': {
-                    transform: 'scale(1.03)',
-                    boxShadow: '0 8px 16px 0 rgba(0,0,0,0.2)',
-                  },
-                }}>
-                  <CardMedia
-                    component="img"
-                    height="140"
-                    image={meal.imageUrl || '/placeholder-meal-image.jpg'}
-                    alt={meal.name}
-                    sx={{ objectFit: 'cover' }}
-                  />
-                  <CardContent sx={{ flexGrow: 1, p: 1.5, overflow: 'auto' }}>
-                    <Typography variant="subtitle1" component="div" noWrap>
-                      {meal.name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                      {`${meal.dietType} - ${meal.mealTime}`}
-                    </Typography>
-                  </CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 0.5 }}>
-                    <Tooltip title="Edit">
-                      <IconButton size="small" onClick={() => handleEditMeal(meal)}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton size="small" onClick={() => handleDeleteMeal(meal)}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+          {isLoading ? (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{ height: '50vh' }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Grid container spacing={2}>
+              {filteredMeals.map((meal) => (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={meal.id}>
+                  <Card sx={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    height: '100%',
+                    maxHeight: '300px',
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                    transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
+                    '&:hover': {
+                      transform: 'scale(1.03)',
+                      boxShadow: '0 8px 16px 0 rgba(0,0,0,0.2)',
+                    },
+                  }}>
+                    <CardMedia
+                      component="img"
+                      height="140"
+                      image={meal.imageUrl || '/placeholder-meal-image.jpg'}
+                      alt={meal.name}
+                      sx={{ objectFit: 'cover' }}
+                    />
+                    <CardContent sx={{ flexGrow: 1, p: 1.5, overflow: 'auto' }}>
+                      <Typography variant="subtitle1" component="div" noWrap>
+                        {meal.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                        {`${meal.dietType} - ${meal.mealTime}`}
+                      </Typography>
+                    </CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 0.5 }}>
+                      <Tooltip title="Edit">
+                        <IconButton size="small" onClick={() => handleEditMeal(meal)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <IconButton size="small" onClick={() => handleDeleteMeal(meal)}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
           <Tooltip title="Add new meal">
             <Fab 
               color="primary" 

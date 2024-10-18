@@ -5,12 +5,15 @@ import { v4 as uuidv4 } from 'uuid'; // Assuming you are using UUID for generati
 
 const storage = getStorage();
 
- export const uploadImageAndGetURL = async (imageFile, storagePath) => {
+export const uploadImageAndGetURL = async (imageFile, dietType, mealTime, mealId) => {
   if (!imageFile) return null;
 
+  const fileExtension = imageFile.name.split('.').pop();
+  const storagePath = `meals/${dietType}/mealsData/${mealTime}/${mealId}.${fileExtension}`;
   const fileRef = storageRef(storage, storagePath);
   await uploadBytes(fileRef, imageFile);
-  return await getDownloadURL(fileRef);
+  const downloadURL = await getDownloadURL(fileRef);
+  return downloadURL;  
 };
 
 // Function to get all meals
@@ -47,20 +50,19 @@ export const getMeals = async () => {
 
 // Function to add a new meal
 export const addMeal = async (meal) => {
-  const mealId = meal.id || uuidv4(); // Generate a new UUID if ID is not provided
+  const mealId = meal.id || uuidv4();
   const mealRef = ref(db, `meals/${meal.dietType}/mealsData/${meal.mealTime}/${mealId}`);
 
   try {
     let mealImageUrl = meal.imageUrl || '';
-    if (meal.imageFile instanceof File) {
-      const imageFileRef = storageRef(storage, `meals/${meal.dietType}/mealsData/${meal.mealTime}/${mealId}/imageUrl/${meal.imageFile.name}`);
-      await uploadBytes(imageFileRef, meal.imageFile);
-      mealImageUrl = await getDownloadURL(imageFileRef);
+    if (meal?.imageFile) {
+      mealImageUrl = await uploadImageAndGetURL(meal.imageFile, meal.dietType, meal.mealTime, mealId);
     }
 
     const newMeal = {
       ...meal,
       id: mealId,
+      name: meal.name || 'Untitled Meal', 
       imageUrl: mealImageUrl,
       createdAt: meal.createdAt || Date.now() / 1000,
     };
@@ -80,25 +82,32 @@ export const updateMeal = async (id, meal, oldCategory, oldMealTime) => {
   try {
     let mealImageUrl = meal.imageUrl;
     if (meal.imageFile instanceof File) {
-      const imageFileRef = storageRef(storage, `meals/${meal.dietType}/mealsData/${meal.mealTime}/${id}/imageUrl/${meal.imageFile.name}`);
-      await uploadBytes(imageFileRef, meal.imageFile);
-      mealImageUrl = await getDownloadURL(imageFileRef);
+      mealImageUrl = await uploadImageAndGetURL(meal.imageFile, meal.dietType, meal.mealTime, id);
     }
     const updatedMeal = {
       ...meal,
+      name: meal.name || 'Untitled Meal',  
       imageUrl: mealImageUrl,
     };
     delete updatedMeal.imageFile;
 
     const oldMealRef = ref(db, `meals/${oldCategory}/mealsData/${oldMealTime}/${id}`);
     const oldMealSnapshot = await get(oldMealRef);
-
     if (!oldMealSnapshot.exists()) {
-       await addMeal({ ...meal, id });
+      await addMeal({ ...meal, id });
       return { id, ...updatedMeal, dietType: meal.dietType, mealTime: meal.mealTime };
     }
 
     if (oldCategory !== meal.dietType || oldMealTime !== meal.mealTime) {
+      const oldMealData = oldMealSnapshot.val();
+      if (oldMealData && oldMealData.imageUrl) {
+        const oldImageRef = storageRef(storage, oldMealData.imageUrl);
+        try {
+          await deleteObject(oldImageRef);
+        } catch (imageError) {
+          console.warn("Error deleting old meal image:", imageError);
+        }
+      }
       await remove(oldMealRef);
       await addMeal({ ...meal, id });
     } else {
@@ -163,11 +172,11 @@ export const updateDietTypeCoverImage = async (dietType, imageFile) => {
   try {
     if (!imageFile) return null;
 
-    const imageUrl = await uploadImageAndGetURL(imageFile, `meals/${dietType}/dietTypeCoverImage`);
+    const downloadURL = await uploadImageAndGetURL(imageFile, dietType, 'dietTypeCoverImage', 'cover');
     const dietTypeRef = ref(db, `meals/${dietType}`);
-    await update(dietTypeRef, { dietTypeImageUrl: imageUrl });
+    await update(dietTypeRef, { dietTypeImageUrl: downloadURL });
 
-    return imageUrl;
+    return downloadURL;
   } catch (error) {
     console.error("Error updating diet type cover image:", error);
     throw error;
