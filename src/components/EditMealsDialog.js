@@ -134,19 +134,18 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{ height: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   return (
     <Dialog open={open} onClose={() => onClose()} maxWidth="md" fullWidth>
       <DialogTitle>Edit Meal</DialogTitle>
       <DialogContent>
-        <form sx={{ mt: "10px" }}>
+        {isLoading ? (
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+            <CircularProgress />
+          </Box>
+        ) :(
+
+          <form sx={{ mt: "10px" }}>
           <Grid container spacing={2}>
             <Grid item xs={6}>
               <FormControl fullWidth margin="normal">
@@ -266,11 +265,12 @@ const EditMealsDialog = ({ open, onClose, meal, mealId }) => {
             </Grid>
           </Grid>
         </form>
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={() => onClose()}>Cancel</Button>
         <Button onClick={handleSubmit} color="primary">
-          Save Changes
+        {isLoading ? 'Saving...' : 'Save Changes'}
         </Button>
       </DialogActions>
     </Dialog>

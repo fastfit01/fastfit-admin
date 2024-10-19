@@ -200,7 +200,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            const programToSubmit =  {
+            const programToSubmit = {
                 ...program,
                 programImageFile: program.programImageFile,
                 weeks: program.weeks.map(week => ({
@@ -226,7 +226,7 @@ const AddProgramsDialog = ({ open, onClose }) => {
                         }))
                     }))
                 }))
-            } 
+            }
 
             console.log("programToSubmit=>", programToSubmit);
 
@@ -262,417 +262,339 @@ const AddProgramsDialog = ({ open, onClose }) => {
         });
     };
 
-    if (isLoading) {
-        return (
-
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{ height: '100vh' }}>
-                <CircularProgress />
-            </Box>
-
-        );
-    }
-
     return (
         <Dialog open={open} onClose={() => onClose()} maxWidth="lg" fullWidth>
             <DialogTitle>Add New Program</DialogTitle>
             <DialogContent>
-                <Grid container spacing={2}>
+                {isLoading ? (
+                    <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+                        <CircularProgress />
+                    </Box>
+                ) : (
+                    <Grid>
+                        <Grid container spacing={2}>
+                            <Grid item xs={12}>
+                                <FormControl fullWidth margin="normal">
+                                    <InputLabel sx={{ mt: "-8px" }}>Program category</InputLabel>
+                                    <Select
+                                        name="programCategory"
+                                        value={program.programCategory}
+                                        onChange={handleChange}
+                                    >
+                                        <MenuItem value="atGymWorkouts">At Gym Workouts</MenuItem>
+                                        <MenuItem value="atHomeWorkouts">At Home Workouts</MenuItem>
+                                        <MenuItem value="balanceAndStability">Balance and Stability</MenuItem>
+                                        <MenuItem value="cardioPrograms">Cardio Programs</MenuItem>
+                                        <MenuItem value="coordinationAndAgilityPrograms">Coordination and Agility Programs</MenuItem>
+                                        <MenuItem value="kettleBellOnlyPrograms">KettleBell Only Programs</MenuItem>
+                                        <MenuItem value="yogaPrograms">Yoga Programs</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Grid>
 
-                    <Grid item xs={12}>
-                        <FormControl fullWidth margin="normal">
-                            <InputLabel sx={{ mt: "-8px" }}>Program category</InputLabel>
-                            <Select
-                                name="programCategory"
-                                value={program.programCategory}
-                                onChange={handleChange}
-                            >
-                                <MenuItem value="atGymWorkouts">At Gym Workouts</MenuItem>
-                                <MenuItem value="atHomeWorkouts">At Home Workouts</MenuItem>
-                                <MenuItem value="balanceAndStability">Balance and Stability</MenuItem>
-                                <MenuItem value="cardioPrograms">Cardio Programs</MenuItem>
-                                <MenuItem value="coordinationAndAgilityPrograms">Coordination and Agility Programs</MenuItem>
-                                <MenuItem value="kettleBellOnlyPrograms">KettleBell Only Programs</MenuItem>
-                                <MenuItem value="yogaPrograms">Yoga Programs</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Grid>
-
-                    <Grid item xs={12} sx={{ "& .MuiGrid-item": { pt: "25px" } }}>
-                        <TextField
-                            fullWidth
-                            name="title"
-                            label="Program Title"
-                            value={program.title}
-                            onChange={handleChange}
-                        />
-                    </Grid>
-
-                    <Grid item xs={12}>
-                        <TextField
-                            fullWidth
-                            multiline
-                            rows={4}
-                            name="description"
-                            label="Program Description"
-                            value={program.description}
-                            onChange={handleChange}
-                        />
-                    </Grid>
-                    <Grid item xs={6}>
-                        <FormControl fullWidth margin="normal">
-                            <InputLabel sx={{ mt: "-8px" }}>Level</InputLabel>
-                            <Select
-                                name="level"
-                                value={program.level}
-                                onChange={handleChange}
-                            >
-                                <MenuItem value="beginner">Beginner</MenuItem>
-                                <MenuItem value="intermediate">Intermediate</MenuItem>
-                                <MenuItem value="advanced">Advanced</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Grid>
-                    <Grid item xs={6} sx={{ mt: "15px" }}>
-                        <TextField
-                            fullWidth
-                            name="guidedOrSelfGuidedProgram"
-                            label="Guided or Self-Guided Program"
-                            value={program.guidedOrSelfGuidedProgram}
-                            onChange={handleChange}
-                        />
-                    </Grid>
-                    <Grid item xs={6}>
-                        <TextField
-                            fullWidth
-                            name="duration"
-                            label="Duration (e.g., 2 weeks, 4 weeks)"
-                            value={program.duration}
-                            onChange={handleChange}
-                        />
-                    </Grid>
-                    <Grid item xs={12}>
-                        <input
-                            accept="image/*"
-                            style={{ display: 'none' }}
-                            id="image-upload"
-                            type="file"
-                            onChange={handleImageUpload}
-                        />
-                        <label htmlFor="image-upload">
-                            <Button variant="contained" component="span" fullWidth style={{ marginTop: 16 }}>
-                                Upload Image
-                            </Button>
-                        </label>
-                        {program.programImageUrl && (
-                            <img
-                                src={program.programImageUrl}
-                                alt="Uploaded"
-                                style={{
-                                    width: 'auto',
-                                    height: '100px',
-                                    objectFit: 'cover',
-                                    borderRadius: '10%',
-                                    marginTop: 16
-                                }}
-                            />
-                        )}
-                    </Grid>
-                </Grid>
-
-                <Box mt={4}>
-                    <Button onClick={addWeek}>Add Week</Button>
-                    {program?.weeks?.map((week, weekIndex) => (
-                        <Box key={weekIndex} mt={2}>
-                            <Box display="flex" alignItems="center">
-                                <Chip
-                                    key={weekIndex}
-                                    label={`Week ${weekIndex + 1}`}
-                                    onDelete={() => deleteWeek(weekIndex)}
-                                    color="primary"
-                                    variant="outlined"
-                                    style={{
-                                        margin: '4px',
-                                        height: '50px',
-                                        width: '100px'
-                                    }}
+                            <Grid item xs={12} sx={{ "& .MuiGrid-item": { pt: "25px" } }}>
+                                <TextField
+                                    fullWidth
+                                    name="title"
+                                    label="Program Title"
+                                    value={program.title}
+                                    onChange={handleChange}
                                 />
-                            </Box>
-                            <Button onClick={() => addDay(weekIndex)}>Add Day</Button>
-                            {week?.days?.map((day, dayIndex) => (
-                                <Box key={dayIndex} mt={2} border={1} borderColor="grey.300" p={2} sx={{
-                                    "& .MuiTextField-root": { margin: '6px' }
-                                }}>
-                                    <Chip
-                                        key={dayIndex}
-                                        label={`Day ${dayIndex + 1}`}
-                                        onDelete={() => deleteDay(weekIndex, dayIndex)}
-                                        color="primary"
-                                        variant="outlined"
+                            </Grid>
+
+                            <Grid item xs={12}>
+                                <TextField
+                                    fullWidth
+                                    multiline
+                                    rows={4}
+                                    name="description"
+                                    label="Program Description"
+                                    value={program.description}
+                                    onChange={handleChange}
+                                />
+                            </Grid>
+                            <Grid item xs={6}>
+                                <FormControl fullWidth margin="normal">
+                                    <InputLabel sx={{ mt: "-8px" }}>Level</InputLabel>
+                                    <Select
+                                        name="level"
+                                        value={program.level}
+                                        onChange={handleChange}
+                                    >
+                                        <MenuItem value="beginner">Beginner</MenuItem>
+                                        <MenuItem value="intermediate">Intermediate</MenuItem>
+                                        <MenuItem value="advanced">Advanced</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+                            <Grid item xs={6} sx={{ mt: "15px" }}>
+                                <TextField
+                                    fullWidth
+                                    name="guidedOrSelfGuidedProgram"
+                                    label="Guided or Self-Guided Program"
+                                    value={program.guidedOrSelfGuidedProgram}
+                                    onChange={handleChange}
+                                />
+                            </Grid>
+                            <Grid item xs={6}>
+                                <TextField
+                                    fullWidth
+                                    name="duration"
+                                    label="Duration (e.g., 2 weeks, 4 weeks)"
+                                    value={program.duration}
+                                    onChange={handleChange}
+                                />
+                            </Grid>
+                            <Grid item xs={12}>
+                                <input
+                                    accept="image/*"
+                                    style={{ display: 'none' }}
+                                    id="image-upload"
+                                    type="file"
+                                    onChange={handleImageUpload}
+                                />
+                                <label htmlFor="image-upload">
+                                    <Button variant="contained" component="span" fullWidth style={{ marginTop: 16 }}>
+                                        Upload Image
+                                    </Button>
+                                </label>
+                                {program.programImageUrl && (
+                                    <img
+                                        src={program.programImageUrl}
+                                        alt="Uploaded"
                                         style={{
-                                            margin: '4px',
-                                            height: '50px',
-                                            width: '100px'
+                                            width: 'auto',
+                                            height: '100px',
+                                            objectFit: 'cover',
+                                            borderRadius: '10%',
+                                            marginTop: 16
                                         }}
                                     />
-                                    <TextField
-                                        fullWidth
-                                        label="Day Title"
-                                        value={day.title}
-                                        onChange={(e) => handleDayChange(weekIndex, dayIndex, 'title', e.target.value)}
-                                    />
-                                    <TextField
-                                        fullWidth
-                                        label="Day Description"
-                                        value={day.description}
-                                        onChange={(e) => handleDayChange(weekIndex, dayIndex, 'description', e.target.value)}
-                                    />
-                                    <TextField
-                                        fullWidth
-                                        label="Duration"
-                                        value={day.duration}
-                                        onChange={(e) => handleDayChange(weekIndex, dayIndex, 'duration', e.target.value)}
-                                    />
+                                )}
+                            </Grid>
+                        </Grid>
 
-                                    <Grid item xs={12} sx={{
-                                        display: 'flex',
-                                        marginTop: '10px'
-                                    }}>
-                                        <input
-                                            accept="image/*"
-                                            style={{ display: 'none' }}
-                                            id={`day-image-upload-${weekIndex}-${dayIndex}`}
-                                            type="file"
-                                            onChange={(e) => handleDayImageUpload(weekIndex, dayIndex, e)}
-                                        />
-                                        <label htmlFor={`day-image-upload-${weekIndex}-${dayIndex}`}>
-                                            <Button variant="contained" component="span">
-                                                Upload Day Image
-                                            </Button>
-                                        </label>
-                                        {day.imageUrl && (
-                                            <img
-                                                src={day.imageUrl}
-                                                alt="Day Image Preview"
-                                                style={{
-                                                    width: '50px',
-                                                    height: '50px',
-                                                    objectFit: 'cover',
-                                                    borderRadius: '10%',
-                                                    marginLeft: '10px'
-                                                }}
-                                            />
-                                        )}
-                                    </Grid>
-
-
-                                    <FormControlLabel
-                                        style={{ display: "flex" }}
-                                        control={
-                                            <Checkbox
-                                                checked={day.isOptional}
-                                                onChange={(e) => handleDayChange(weekIndex, dayIndex, 'isOptional', e.target.checked)}
-                                            />
-                                        }
-                                        label="Optional Day"
-                                    />
-
-                                    <TextField
-                                        label="Focus"
-                                        value={day?.focus}
-                                        onChange={(e) => handleDayChange(weekIndex, dayIndex, 'focus', e.target.value)}
-                                    />
-
-                                     {/* Focus Section */}
-                                     <TextField
-                                        label="Target Area"
-                                        value={currentTarget}
-                                        onChange={(e) => setCurrentTarget(e.target.value)}
-                                    />
-                                    <Button onClick={() => handleTargetAreaChange(weekIndex, dayIndex)}>Add</Button>
-                                    {day.targetArea?.map((target, index) => (
+                        <Box mt={4}>
+                            <Button onClick={addWeek}>Add Week</Button>
+                            {program?.weeks?.map((week, weekIndex) => (
+                                <Box key={weekIndex} mt={2}>
+                                    <Box display="flex" alignItems="center">
                                         <Chip
-                                            key={index}
-                                            label={target}
-                                            onDelete={() => {
-                                                const newTargets = day.targetArea.filter((_, i) => i !== index);
-                                                handleDayChange(weekIndex, dayIndex, 'targetArea', newTargets);
+                                            key={weekIndex}
+                                            label={`Week ${weekIndex + 1}`}
+                                            onDelete={() => deleteWeek(weekIndex)}
+                                            color="primary"
+                                            variant="outlined"
+                                            style={{
+                                                margin: '4px',
+                                                height: '50px',
+                                                width: '100px'
                                             }}
-                                            style={{ margin: 4 }}
                                         />
-                                    ))}
-
-                                    {/* mindfulness Section */}
-                                    <Typography variant="subtitle2" mt={2}>mindfulness</Typography>
-                                    <Button onClick={() => handleAddExercise(weekIndex, dayIndex, 'mindfulness')}>Add mindfulness Exercise</Button>
-                                    {day.mindfulness?.map((exercise, index) => (
-                                        <Box key={index} mt={1} sx={{
-                                            display: 'flex',
-                                            flexWrap: 'wrap',
-                                            gap: 1,
-                                            alignItems: 'center'
-                                        }}>
-                                            <TextField
-                                                label="Exercise Name"
-                                                value={exercise.name}
-                                                onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'mindfulness', null, index, 'name', e.target.value)}
-                                            />
-                                            <TextField
-                                                label="Duration"
-                                                value={exercise.duration}
-                                                onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'mindfulness', null, index, 'duration', e.target.value)}
-                                            />
-                                            <input
-                                                accept="image/*"
-                                                style={{ display: 'none' }}
-                                                id={`image-upload-mindfulness-${weekIndex}-${dayIndex}-${index}`}
-                                                type="file"
-                                                onChange={(e) => handleWeeksImageUpload(weekIndex, dayIndex, 'mindfulness', index, e)}
-                                            />
-                                            <label htmlFor={`image-upload-mindfulness-${weekIndex}-${dayIndex}-${index}`}>
-                                                <Button variant="contained" component="span">
-                                                    Upload Image
-                                                </Button>
-                                            </label>
-                                            {exercise.imageUrl && (
-                                                <img
-                                                    src={exercise.imageUrl}
-                                                    alt="Image Preview"
-                                                    style={{
-                                                        width: '50px',
-                                                        height: '50px',
-                                                        objectFit: 'cover',
-                                                        borderRadius: '10%'
-                                                    }}
-                                                />
-                                            )}
-                                        </Box>
-                                    ))}
-
-                                    {/* stretch Section */}
-                                    <Typography variant="subtitle2" mt={2}>stretch</Typography>
-                                    <Button onClick={() => handleAddExercise(weekIndex, dayIndex, 'stretch')}>Add stretch Exercise</Button>
-                                    {day.stretch?.map((exercise, index) => (
-                                        <Box key={index} mt={1} sx={{
-                                            display: 'flex',
-                                            flexWrap: 'wrap',
-                                            gap: 1,
-                                            alignItems: 'center'
-                                        }}>
-                                            <TextField
-                                                label="Exercise Name"
-                                                value={exercise.name}
-                                                onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'stretch', null, index, 'name', e.target.value)}
-                                            />
-                                            <TextField
-                                                label="Duration"
-                                                value={exercise.duration}
-                                                onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'stretch', null, index, 'duration', e.target.value)}
-                                            />
-                                            <input
-                                                accept="image/*"
-                                                style={{ display: 'none' }}
-                                                id={`image-upload-stretch-${weekIndex}-${dayIndex}-${index}`}
-                                                type="file"
-                                                onChange={(e) => handleWeeksImageUpload(weekIndex, dayIndex, 'stretch', index, e)}
-                                            />
-                                            <label htmlFor={`image-upload-stretch-${weekIndex}-${dayIndex}-${index}`}>
-                                                <Button variant="contained" component="span">
-                                                    Upload Image
-                                                </Button>
-                                            </label>
-                                            {exercise.imageUrl && (
-                                                <img
-                                                    src={exercise.imageUrl}
-                                                    alt="Image Preview"
-                                                    style={{
-                                                        width: '50px',
-                                                        height: '50px',
-                                                        objectFit: 'cover',
-                                                        borderRadius: '10%'
-                                                    }}
-                                                />
-                                            )}
-                                        </Box>
-                                    ))}
- 
-
-                                    {/* Warm-up Exercises */}
-                                    <Typography variant="subtitle2">Warm-up Exercises</Typography>
-                                    <Button onClick={() => addExercise(weekIndex, dayIndex, 'warmUp')}>Add Warm-up Exercise</Button>
-                                    {day?.warmUp?.map((exercise, exerciseIndex) => (
-                                        <Box key={exerciseIndex} mt={1} sx={{
-                                            display: 'flex',
-                                            flexWrap: 'wrap',
-                                            gap: 1,
-                                            alignItems: 'center'
-                                        }}>
-                                            <TextField
-                                                label="Exercise Name"
-                                                value={exercise.name}
-                                                onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'warmUp', null, exerciseIndex, 'name', e.target.value)}
-                                            />
-                                            <TextField
-                                                label="Duration"
-                                                value={exercise.duration}
-                                                onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'warmUp', null, exerciseIndex, 'duration', e.target.value)}
-                                            />
-                                            <TextField
-                                                label="Reps"
-                                                value={exercise.reps}
-                                                onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'warmUp', null, exerciseIndex, 'reps', e.target.value)}
-                                            />
-                                            <input
-                                                accept="image/*"
-                                                style={{ display: 'none' }}
-                                                id={`gif-upload-warmup-${weekIndex}-${dayIndex}-${exerciseIndex}`}
-                                                type="file"
-                                                onChange={(e) => handleGifUpload(weekIndex, dayIndex, 'warmUp', null, exerciseIndex, e)}
-                                            />
-                                            <label htmlFor={`gif-upload-warmup-${weekIndex}-${dayIndex}-${exerciseIndex}`}>
-                                                <Button variant="contained" component="span">
-                                                    Upload Img / GIF
-                                                </Button>
-                                            </label>
-                                            {exercise.gifUrl && (
-                                                <img
-                                                    src={exercise.gifUrl}
-                                                    alt="GIF Preview"
-                                                    style={{
-                                                        width: '50px',
-                                                        height: '50px',
-                                                        objectFit: 'cover',
-                                                        borderRadius: '10%'
-                                                    }}
-                                                />
-                                            )}
-                                        </Box>
-                                    ))}
-
-                                    {/* Workout Exercises */}
-                                    <Typography variant="subtitle2" mt={2}>Workout</Typography>
-                                    <Button onClick={() => addSet(weekIndex, dayIndex)}>Add Set</Button>
-                                    {day?.workout?.map((set, setIndex) => (
-                                        <Box key={setIndex} mt={1} sx={{
-                                            border: '1px solid',
-                                            borderRadius: '10px',
-                                            padding: '10px'
+                                    </Box>
+                                    <Button onClick={() => addDay(weekIndex)}>Add Day</Button>
+                                    {week?.days?.map((day, dayIndex) => (
+                                        <Box key={dayIndex} mt={2} border={1} borderColor="grey.300" p={2} sx={{
+                                            "& .MuiTextField-root": { margin: '6px' }
                                         }}>
                                             <Chip
-                                                key={setIndex}
-                                                label={`Set ${setIndex + 1}`}
-                                                onDelete={() => deleteSet(weekIndex, dayIndex, setIndex)}  
+                                                key={dayIndex}
+                                                label={`Day ${dayIndex + 1}`}
+                                                onDelete={() => deleteDay(weekIndex, dayIndex)}
                                                 color="primary"
                                                 variant="outlined"
                                                 style={{
                                                     margin: '4px',
-                                                    height: '40px',
-                                                    width: '80px'
+                                                    height: '50px',
+                                                    width: '100px'
                                                 }}
                                             />
-                                            <Button onClick={() => addExercise(weekIndex, dayIndex, 'workout', setIndex)}>
-                                                Add Exercise
-                                            </Button>
-                                            {set.exercises.map((exercise, exerciseIndex) => (
+                                            <TextField
+                                                fullWidth
+                                                label="Day Title"
+                                                value={day.title}
+                                                onChange={(e) => handleDayChange(weekIndex, dayIndex, 'title', e.target.value)}
+                                            />
+                                            <TextField
+                                                fullWidth
+                                                label="Day Description"
+                                                value={day.description}
+                                                onChange={(e) => handleDayChange(weekIndex, dayIndex, 'description', e.target.value)}
+                                            />
+                                            <TextField
+                                                fullWidth
+                                                label="Duration"
+                                                value={day.duration}
+                                                onChange={(e) => handleDayChange(weekIndex, dayIndex, 'duration', e.target.value)}
+                                            />
+
+                                            <Grid item xs={12} sx={{
+                                                display: 'flex',
+                                                marginTop: '10px'
+                                            }}>
+                                                <input
+                                                    accept="image/*"
+                                                    style={{ display: 'none' }}
+                                                    id={`day-image-upload-${weekIndex}-${dayIndex}`}
+                                                    type="file"
+                                                    onChange={(e) => handleDayImageUpload(weekIndex, dayIndex, e)}
+                                                />
+                                                <label htmlFor={`day-image-upload-${weekIndex}-${dayIndex}`}>
+                                                    <Button variant="contained" component="span">
+                                                        Upload Day Image
+                                                    </Button>
+                                                </label>
+                                                {day.imageUrl && (
+                                                    <img
+                                                        src={day.imageUrl}
+                                                        alt="Day Image Preview"
+                                                        style={{
+                                                            width: '50px',
+                                                            height: '50px',
+                                                            objectFit: 'cover',
+                                                            borderRadius: '10%',
+                                                            marginLeft: '10px'
+                                                        }}
+                                                    />
+                                                )}
+                                            </Grid>
+
+
+                                            <FormControlLabel
+                                                style={{ display: "flex" }}
+                                                control={
+                                                    <Checkbox
+                                                        checked={day.isOptional}
+                                                        onChange={(e) => handleDayChange(weekIndex, dayIndex, 'isOptional', e.target.checked)}
+                                                    />
+                                                }
+                                                label="Optional Day"
+                                            />
+
+                                            <TextField
+                                                label="Focus"
+                                                value={day?.focus}
+                                                onChange={(e) => handleDayChange(weekIndex, dayIndex, 'focus', e.target.value)}
+                                            />
+
+                                            {/* Focus Section */}
+                                            <TextField
+                                                label="Target Area"
+                                                value={currentTarget}
+                                                onChange={(e) => setCurrentTarget(e.target.value)}
+                                            />
+                                            <Button onClick={() => handleTargetAreaChange(weekIndex, dayIndex)}>Add</Button>
+                                            {day.targetArea?.map((target, index) => (
+                                                <Chip
+                                                    key={index}
+                                                    label={target}
+                                                    onDelete={() => {
+                                                        const newTargets = day.targetArea.filter((_, i) => i !== index);
+                                                        handleDayChange(weekIndex, dayIndex, 'targetArea', newTargets);
+                                                    }}
+                                                    style={{ margin: 4 }}
+                                                />
+                                            ))}
+
+                                            {/* mindfulness Section */}
+                                            <Typography variant="subtitle2" mt={2}>mindfulness</Typography>
+                                            <Button onClick={() => handleAddExercise(weekIndex, dayIndex, 'mindfulness')}>Add mindfulness Exercise</Button>
+                                            {day.mindfulness?.map((exercise, index) => (
+                                                <Box key={index} mt={1} sx={{
+                                                    display: 'flex',
+                                                    flexWrap: 'wrap',
+                                                    gap: 1,
+                                                    alignItems: 'center'
+                                                }}>
+                                                    <TextField
+                                                        label="Exercise Name"
+                                                        value={exercise.name}
+                                                        onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'mindfulness', null, index, 'name', e.target.value)}
+                                                    />
+                                                    <TextField
+                                                        label="Duration"
+                                                        value={exercise.duration}
+                                                        onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'mindfulness', null, index, 'duration', e.target.value)}
+                                                    />
+                                                    <input
+                                                        accept="image/*"
+                                                        style={{ display: 'none' }}
+                                                        id={`image-upload-mindfulness-${weekIndex}-${dayIndex}-${index}`}
+                                                        type="file"
+                                                        onChange={(e) => handleWeeksImageUpload(weekIndex, dayIndex, 'mindfulness', index, e)}
+                                                    />
+                                                    <label htmlFor={`image-upload-mindfulness-${weekIndex}-${dayIndex}-${index}`}>
+                                                        <Button variant="contained" component="span">
+                                                            Upload Image
+                                                        </Button>
+                                                    </label>
+                                                    {exercise.imageUrl && (
+                                                        <img
+                                                            src={exercise.imageUrl}
+                                                            alt="Image Preview"
+                                                            style={{
+                                                                width: '50px',
+                                                                height: '50px',
+                                                                objectFit: 'cover',
+                                                                borderRadius: '10%'
+                                                            }}
+                                                        />
+                                                    )}
+                                                </Box>
+                                            ))}
+
+                                            {/* stretch Section */}
+                                            <Typography variant="subtitle2" mt={2}>stretch</Typography>
+                                            <Button onClick={() => handleAddExercise(weekIndex, dayIndex, 'stretch')}>Add stretch Exercise</Button>
+                                            {day.stretch?.map((exercise, index) => (
+                                                <Box key={index} mt={1} sx={{
+                                                    display: 'flex',
+                                                    flexWrap: 'wrap',
+                                                    gap: 1,
+                                                    alignItems: 'center'
+                                                }}>
+                                                    <TextField
+                                                        label="Exercise Name"
+                                                        value={exercise.name}
+                                                        onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'stretch', null, index, 'name', e.target.value)}
+                                                    />
+                                                    <TextField
+                                                        label="Duration"
+                                                        value={exercise.duration}
+                                                        onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'stretch', null, index, 'duration', e.target.value)}
+                                                    />
+                                                    <input
+                                                        accept="image/*"
+                                                        style={{ display: 'none' }}
+                                                        id={`image-upload-stretch-${weekIndex}-${dayIndex}-${index}`}
+                                                        type="file"
+                                                        onChange={(e) => handleWeeksImageUpload(weekIndex, dayIndex, 'stretch', index, e)}
+                                                    />
+                                                    <label htmlFor={`image-upload-stretch-${weekIndex}-${dayIndex}-${index}`}>
+                                                        <Button variant="contained" component="span">
+                                                            Upload Image
+                                                        </Button>
+                                                    </label>
+                                                    {exercise.imageUrl && (
+                                                        <img
+                                                            src={exercise.imageUrl}
+                                                            alt="Image Preview"
+                                                            style={{
+                                                                width: '50px',
+                                                                height: '50px',
+                                                                objectFit: 'cover',
+                                                                borderRadius: '10%'
+                                                            }}
+                                                        />
+                                                    )}
+                                                </Box>
+                                            ))}
+
+
+                                            {/* Warm-up Exercises */}
+                                            <Typography variant="subtitle2">Warm-up Exercises</Typography>
+                                            <Button onClick={() => addExercise(weekIndex, dayIndex, 'warmUp')}>Add Warm-up Exercise</Button>
+                                            {day?.warmUp?.map((exercise, exerciseIndex) => (
                                                 <Box key={exerciseIndex} mt={1} sx={{
                                                     display: 'flex',
                                                     flexWrap: 'wrap',
@@ -681,39 +603,29 @@ const AddProgramsDialog = ({ open, onClose }) => {
                                                 }}>
                                                     <TextField
                                                         label="Exercise Name"
-                                                        value={exercise?.name}
-                                                        onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'name', e.target.value)}
+                                                        value={exercise.name}
+                                                        onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'warmUp', null, exerciseIndex, 'name', e.target.value)}
+                                                    />
+                                                    <TextField
+                                                        label="Duration"
+                                                        value={exercise.duration}
+                                                        onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'warmUp', null, exerciseIndex, 'duration', e.target.value)}
                                                     />
                                                     <TextField
                                                         label="Reps"
-                                                        value={exercise?.reps}
-                                                        onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'reps', e.target.value)}
-                                                    />
-                                                    <TextField
-                                                        label="Rest"
-                                                        value={exercise?.rest}
-                                                        onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'rest', e.target.value)}
-                                                    />
-                                                    <TextField
-                                                        label="Tempo"
-                                                        value={exercise?.tempo}
-                                                        onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'tempo', e.target.value)}
-                                                    />
-                                                     <TextField
-                                                        label="Duration"
-                                                        value={exercise?.duration}
-                                                        onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'duration', e.target.value)}
+                                                        value={exercise.reps}
+                                                        onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'warmUp', null, exerciseIndex, 'reps', e.target.value)}
                                                     />
                                                     <input
                                                         accept="image/*"
                                                         style={{ display: 'none' }}
-                                                        id={`gif-upload-workout-${weekIndex}-${dayIndex}-${setIndex}-${exerciseIndex}`}
+                                                        id={`gif-upload-warmup-${weekIndex}-${dayIndex}-${exerciseIndex}`}
                                                         type="file"
-                                                        onChange={(e) => handleGifUpload(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, e)}
+                                                        onChange={(e) => handleGifUpload(weekIndex, dayIndex, 'warmUp', null, exerciseIndex, e)}
                                                     />
-                                                    <label htmlFor={`gif-upload-workout-${weekIndex}-${dayIndex}-${setIndex}-${exerciseIndex}`}>
+                                                    <label htmlFor={`gif-upload-warmup-${weekIndex}-${dayIndex}-${exerciseIndex}`}>
                                                         <Button variant="contained" component="span">
-                                                            Upload Img /GIF
+                                                            Upload Img / GIF
                                                         </Button>
                                                     </label>
                                                     {exercise.gifUrl && (
@@ -730,15 +642,102 @@ const AddProgramsDialog = ({ open, onClose }) => {
                                                     )}
                                                 </Box>
                                             ))}
+
+                                            {/* Workout Exercises */}
+                                            <Typography variant="subtitle2" mt={2}>Workout</Typography>
+                                            <Button onClick={() => addSet(weekIndex, dayIndex)}>Add Set</Button>
+                                            {day?.workout?.map((set, setIndex) => (
+                                                <Box key={setIndex} mt={1} sx={{
+                                                    border: '1px solid',
+                                                    borderRadius: '10px',
+                                                    padding: '10px'
+                                                }}>
+                                                    <Chip
+                                                        key={setIndex}
+                                                        label={`Set ${setIndex + 1}`}
+                                                        onDelete={() => deleteSet(weekIndex, dayIndex, setIndex)}
+                                                        color="primary"
+                                                        variant="outlined"
+                                                        style={{
+                                                            margin: '4px',
+                                                            height: '40px',
+                                                            width: '80px'
+                                                        }}
+                                                    />
+                                                    <Button onClick={() => addExercise(weekIndex, dayIndex, 'workout', setIndex)}>
+                                                        Add Exercise
+                                                    </Button>
+                                                    {set.exercises.map((exercise, exerciseIndex) => (
+                                                        <Box key={exerciseIndex} mt={1} sx={{
+                                                            display: 'flex',
+                                                            flexWrap: 'wrap',
+                                                            gap: 1,
+                                                            alignItems: 'center'
+                                                        }}>
+                                                            <TextField
+                                                                label="Exercise Name"
+                                                                value={exercise?.name}
+                                                                onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'name', e.target.value)}
+                                                            />
+                                                            <TextField
+                                                                label="Reps"
+                                                                value={exercise?.reps}
+                                                                onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'reps', e.target.value)}
+                                                            />
+                                                            <TextField
+                                                                label="Rest"
+                                                                value={exercise?.rest}
+                                                                onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'rest', e.target.value)}
+                                                            />
+                                                            <TextField
+                                                                label="Tempo"
+                                                                value={exercise?.tempo}
+                                                                onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'tempo', e.target.value)}
+                                                            />
+                                                            <TextField
+                                                                label="Duration"
+                                                                value={exercise?.duration}
+                                                                onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'duration', e.target.value)}
+                                                            />
+                                                            <input
+                                                                accept="image/*"
+                                                                style={{ display: 'none' }}
+                                                                id={`gif-upload-workout-${weekIndex}-${dayIndex}-${setIndex}-${exerciseIndex}`}
+                                                                type="file"
+                                                                onChange={(e) => handleGifUpload(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, e)}
+                                                            />
+                                                            <label htmlFor={`gif-upload-workout-${weekIndex}-${dayIndex}-${setIndex}-${exerciseIndex}`}>
+                                                                <Button variant="contained" component="span">
+                                                                    Upload Img /GIF
+                                                                </Button>
+                                                            </label>
+                                                            {exercise.gifUrl && (
+                                                                <img
+                                                                    src={exercise.gifUrl}
+                                                                    alt="GIF Preview"
+                                                                    style={{
+                                                                        width: '50px',
+                                                                        height: '50px',
+                                                                        objectFit: 'cover',
+                                                                        borderRadius: '10%'
+                                                                    }}
+                                                                />
+                                                            )}
+                                                        </Box>
+                                                    ))}
+                                                </Box>
+                                            ))}
                                         </Box>
                                     ))}
                                 </Box>
                             ))}
                         </Box>
-                    ))}
-                </Box>
-            </DialogContent>
+                    </Grid>
+                )
+                }
 
+
+            </DialogContent>
             <DialogActions>
                 <Button onClick={() => onClose()}>Cancel</Button>
                 <Button onClick={handleSubmit} color="primary" variant="contained">{isLoading ? 'Adding Program...' : 'Add Program'}</Button>
