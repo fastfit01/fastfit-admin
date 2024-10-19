@@ -104,7 +104,7 @@ const Meals = () => {
             placeholder="Search meals..."
           />
           {isLoading ? (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{ height: '50vh' }}>
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
               <CircularProgress />
             </Box>
           ) : (

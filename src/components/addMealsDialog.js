@@ -153,19 +153,16 @@ const AddMealsDialog = ({ open, onClose }) => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{ height: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
     <Dialog open={open} onClose={() => onClose()} maxWidth="md" fullWidth>
       <DialogTitle>Add New Meal</DialogTitle>
       <DialogContent>
-        <Grid container spacing={2} sx={{ mt: "10px" }}>
+        {isLoading ? (
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+            <CircularProgress />
+          </Box>
+        ) :(
+          <Grid container spacing={2} sx={{ mt: "10px" }}>
           <Grid item xs={6}>
             <FormControl fullWidth>
               <InputLabel sx={{ mt: "-8px" }}>Diet Type</InputLabel>
@@ -308,10 +305,11 @@ const AddMealsDialog = ({ open, onClose }) => {
             </Grid>
           </Grid>
         </Grid>
+        )}      
       </DialogContent>
       <DialogActions>
         <Button onClick={() => onClose()}>Cancel</Button>
-        <Button onClick={handleSubmit} color="primary" variant="contained">Add Meal</Button>
+        <Button onClick={handleSubmit} color="primary" variant="contained">{isLoading ? 'Adding...' : 'Add Meal'}</Button>
       </DialogActions>
     </Dialog>
   );
