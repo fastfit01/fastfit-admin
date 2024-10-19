@@ -65,7 +65,7 @@ const Programs = () => {
     setOpenEditDialog(false);
     if (updatedProgram) {
       try {
-        setPrograms(prevPrograms => 
+        setPrograms(prevPrograms =>
           prevPrograms.map(p => p.id === updatedProgram.id ? updatedProgram : p)
         );
         console.log("Program updated successfully:", updatedProgram);
@@ -83,14 +83,6 @@ const Programs = () => {
     program.guidedOrSelfGuidedProgram.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (isLoading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" sx={{height: '100vh'}}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
     <ProtectedRoute>
       <Layout>
@@ -103,68 +95,74 @@ const Programs = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search programs..."
           />
-          <Grid container spacing={2}>
-            {filteredPrograms.map((program) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={program.id}>
-                <Card sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  height: '100%',
-                  maxHeight: '300px',
-                  borderRadius: '16px',
-                  overflow: 'hidden',
-                  transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
-                  '&:hover': {
-                    transform: 'scale(1.03)',
-                    boxShadow: '0 8px 16px 0 rgba(0,0,0,0.2)',
-                  },
-                }}>
-                  <CardMedia
-                    component="img"
-                    height="140"
-                    image={program.programImageUrl || 'https://via.placeholder.com/140x140?text=No+Image'}
-                    alt={program.title}
-                    sx={{ objectFit: 'cover' }}
-                  />
-                  <CardContent sx={{ flexGrow: 1, p: 1.5, overflow: 'auto' }}>
-                    <Typography variant="subtitle1" component="div" noWrap>
-                      {program.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                      Duration: {program.duration}
-                    </Typography>
-                    <Box sx={{ mb: 0.5 }}>
-                      <Chip 
-                        label={program.level} 
-                        size="small" 
-                        sx={{ mr: 0.5, mb: 0.5, fontSize: '0.6rem', height: '16px' }} 
-                      />
-                      <Chip 
-                        label={program.guidedOrSelfGuidedProgram} 
-                        size="small" 
-                        sx={{ mr: 0.5, mb: 0.5, fontSize: '0.6rem', height: '16px' }} 
-                      />
+          {isLoading ? (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Grid container spacing={2}>
+              {filteredPrograms.map((program) => (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={program.id}>
+                  <Card sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: '100%',
+                    maxHeight: '300px',
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                    transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
+                    '&:hover': {
+                      transform: 'scale(1.03)',
+                      boxShadow: '0 8px 16px 0 rgba(0,0,0,0.2)',
+                    },
+                  }}>
+                    <CardMedia
+                      component="img"
+                      height="140"
+                      image={program.programImageUrl || 'https://via.placeholder.com/140x140?text=No+Image'}
+                      alt={program.title}
+                      sx={{ objectFit: 'cover' }}
+                    />
+                    <CardContent sx={{ flexGrow: 1, p: 1.5, overflow: 'auto' }}>
+                      <Typography variant="subtitle1" component="div" noWrap>
+                        {program.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                        Duration: {program.duration}
+                      </Typography>
+                      <Box sx={{ mb: 0.5 }}>
+                        <Chip
+                          label={program.level}
+                          size="small"
+                          sx={{ mr: 0.5, mb: 0.5, fontSize: '0.6rem', height: '16px' }}
+                        />
+                        <Chip
+                          label={program.guidedOrSelfGuidedProgram}
+                          size="small"
+                          sx={{ mr: 0.5, mb: 0.5, fontSize: '0.6rem', height: '16px' }}
+                        />
+                      </Box>
+                    </CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 0.5 }}>
+                      <Tooltip title="Edit">
+                        <IconButton size="small" onClick={() => handleEditClick(program)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <IconButton size="small" onClick={() => handleDeleteClick(program.id, program.programCategory, program.level)}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </Box>
-                  </CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 0.5 }}>
-                    <Tooltip title="Edit">
-                      <IconButton size="small" onClick={() => handleEditClick(program)}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton size="small" onClick={() => handleDeleteClick(program.id, program.programCategory, program.level)}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
           <Tooltip title="Add new program">
-            <Fab 
-              color="primary" 
+            <Fab
+              color="primary"
               aria-label="add"
               onClick={handleAddClick}
               sx={{
