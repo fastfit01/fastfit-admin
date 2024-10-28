@@ -146,7 +146,7 @@ const Meditations = () => {
                         {meditation.title}
                       </Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                        {meditation.duration && `${meditation.duration} min`}
+                        {meditation.duration && `${meditation.duration} `}
                         {meditation.duration && meditation.difficulty && ' • '}
                         {meditation.difficulty && `${meditation.difficulty}`}
                       </Typography>
