@@ -262,6 +262,21 @@ const AddProgramsDialog = ({ open, onClose }) => {
         });
     };
 
+    // Add this new function near other delete functions
+    const deleteExercise = (weekIndex, dayIndex, type, setIndex, exerciseIndex) => {
+        setProgram(prevProgram => {
+            const newWeeks = [...prevProgram.weeks];
+            if (type === 'workout') {
+                newWeeks[weekIndex].days[dayIndex].workout[setIndex].exercises = 
+                    newWeeks[weekIndex].days[dayIndex].workout[setIndex].exercises.filter((_, index) => index !== exerciseIndex);
+            } else {
+                newWeeks[weekIndex].days[dayIndex][type] = 
+                    newWeeks[weekIndex].days[dayIndex][type].filter((_, index) => index !== exerciseIndex);
+            }
+            return { ...prevProgram, weeks: newWeeks };
+        });
+    };
+
     return (
         <Dialog open={open} onClose={() => onClose()} maxWidth="lg" fullWidth>
             <DialogTitle>Add New Program</DialogTitle>
@@ -540,6 +555,14 @@ const AddProgramsDialog = ({ open, onClose }) => {
                                                             }}
                                                         />
                                                     )}
+                                                    <Button 
+                                                        variant="outlined" 
+                                                        color="error" 
+                                                        onClick={() => deleteExercise(weekIndex, dayIndex, 'mindfulness', null, index)}
+                                                    >
+                                                        Delete
+                                                    </Button>
+                                                    
                                                 </Box>
                                             ))}
 
@@ -587,6 +610,14 @@ const AddProgramsDialog = ({ open, onClose }) => {
                                                             }}
                                                         />
                                                     )}
+                                                    <Button 
+                                                        variant="outlined" 
+                                                        color="error" 
+                                                        onClick={() => deleteExercise(weekIndex, dayIndex, 'stretch', null, index)}
+                                                    >
+                                                        Delete
+                                                    </Button>
+                                                   
                                                 </Box>
                                             ))}
 
@@ -640,6 +671,14 @@ const AddProgramsDialog = ({ open, onClose }) => {
                                                             }}
                                                         />
                                                     )}
+                                                    <Button 
+                                                        variant="outlined" 
+                                                        color="error" 
+                                                        onClick={() => deleteExercise(weekIndex, dayIndex, 'warmUp', null, exerciseIndex)}
+                                                    >
+                                                        Delete
+                                                    </Button>
+                                                 
                                                 </Box>
                                             ))}
 
@@ -723,6 +762,14 @@ const AddProgramsDialog = ({ open, onClose }) => {
                                                                     }}
                                                                 />
                                                             )}
+                                                            <Button 
+                                                                variant="outlined" 
+                                                                color="error" 
+                                                                onClick={() => deleteExercise(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex)}
+                                                            >
+                                                                Delete
+                                                            </Button>
+                                                           
                                                         </Box>
                                                     ))}
                                                 </Box>

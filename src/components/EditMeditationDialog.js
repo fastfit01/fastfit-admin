@@ -35,7 +35,7 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
         if (title) {
             const updatedMeditation = await updateMeditation(meditation.id, {
                 title,
-                duration: parseInt(duration),
+                duration,
                 audioFile,
                 category,
                 description,

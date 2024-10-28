@@ -282,6 +282,20 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
         }
     };
 
+    // Add this new function near other delete functions
+    const deleteExercise = (weekIndex, dayIndex, type, setIndex, exerciseIndex) => {
+        setEditedProgram(prevProgram => {
+            const newWeeks = [...prevProgram.weeks];
+            if (type === 'workout') {
+                newWeeks[weekIndex].days[dayIndex].workout[setIndex].exercises = 
+                    newWeeks[weekIndex].days[dayIndex].workout[setIndex].exercises.filter((_, index) => index !== exerciseIndex);
+            } else {
+                newWeeks[weekIndex].days[dayIndex][type] = 
+                    newWeeks[weekIndex].days[dayIndex][type].filter((_, index) => index !== exerciseIndex);
+            }
+            return { ...prevProgram, weeks: newWeeks };
+        });
+    };
 
     return (
         <Dialog open={open} onClose={() => onClose()} maxWidth="lg" fullWidth>
@@ -537,7 +551,11 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                                                 <Typography variant="subtitle1">Warm Up</Typography>
                                                 <Button onClick={() => addExercise(weekIndex, dayIndex, 'warmUp')}>Add Warm Up Exercise</Button>
                                                 {day.warmUp?.map((exercise, index) => (
-                                                    <Box key={index} mt={1}>
+                                                    <Box key={index} mt={1} sx={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center'
+                                                    }}>
                                                         <TextField
                                                             label="Exercise Name"
                                                             value={exercise.name}
@@ -576,9 +594,17 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                                                                 }}
                                                             />
                                                         )}
+                                                        <Button 
+                                                            variant="outlined" 
+                                                            color="error" 
+                                                            onClick={() => deleteExercise(weekIndex, dayIndex, 'warmUp', null, index)}
+                                                        >
+                                                            Delete
+                                                        </Button>
                                                     </Box>
                                                 ))}
                                             </Box>
+                                            
                                             <Box mt={2} >
                                                 <Typography variant="subtitle1">Workout</Typography>
                                                 <Button onClick={() => addSet(weekIndex, dayIndex)}>Add Set</Button>
@@ -602,7 +628,11 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                                                         />
                                                         <Button onClick={() => addExercise(weekIndex, dayIndex, 'workout', setIndex)}>Add Exercise</Button>
                                                         {set.exercises?.map((exercise, exerciseIndex) => (
-                                                            <Box key={exerciseIndex} mt={1}>
+                                                            <Box key={exerciseIndex} mt={1} sx={{
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                alignItems: 'center'
+                                                            }}>
                                                                 <TextField
                                                                     label="Exercise Name"
                                                                     value={exercise?.name}
@@ -648,10 +678,18 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                                                                             height: '50px',
                                                                             objectFit: 'cover',
                                                                             borderRadius: '10%',
-                                                                            marginTop: 8
+                                                                            marginTop: 8,
+                                                                            marginRight:"7px"
                                                                         }}
                                                                     />
                                                                 )}
+                                                                <Button 
+                                                                    variant="outlined" 
+                                                                    color="error" 
+                                                                    onClick={() => deleteExercise(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex)}
+                                                                >
+                                                                    Delete
+                                                                </Button>
                                                             </Box>
                                                         ))}
                                                     </Box>
@@ -661,7 +699,11 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                                                 <Typography variant="subtitle1">Mindfulness</Typography>
                                                 <Button onClick={() => handleAddExercise(weekIndex, dayIndex, 'mindfulness')}>Add Mindfulness Exercise</Button>
                                                 {day.mindfulness?.map((exercise, index) => (
-                                                    <Box key={index} mt={1}>
+                                                    <Box key={index} mt={1} sx={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center'
+                                                    }}>
                                                         <TextField
                                                             label="Exercise Name"
                                                             value={exercise.name}
@@ -690,11 +732,17 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                                                                     width: '50px',
                                                                     height: '50px',
                                                                     objectFit: 'cover',
-                                                                    borderRadius: '10%',
-                                                                    marginTop: 8
+                                                                    borderRadius: '10%'
                                                                 }}
                                                             />
                                                         )}
+                                                        <Button 
+                                                            variant="outlined" 
+                                                            color="error" 
+                                                            onClick={() => deleteExercise(weekIndex, dayIndex, 'mindfulness', null, index)}
+                                                        >
+                                                            Delete
+                                                        </Button>
                                                     </Box>
                                                 ))}
                                             </Box>
@@ -702,7 +750,11 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                                                 <Typography variant="subtitle1">Stretch</Typography>
                                                 <Button onClick={() => handleAddExercise(weekIndex, dayIndex, 'stretch')}>Add Stretch Exercise</Button>
                                                 {day.stretch?.map((exercise, index) => (
-                                                    <Box key={index} mt={1}>
+                                                    <Box key={index} mt={1} sx={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center'
+                                                    }}>
                                                         <TextField
                                                             label="Exercise Name"
                                                             value={exercise.name}
@@ -731,11 +783,17 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
                                                                     width: '50px',
                                                                     height: '50px',
                                                                     objectFit: 'cover',
-                                                                    borderRadius: '10%',
-                                                                    marginTop: 8
+                                                                    borderRadius: '10%'
                                                                 }}
                                                             />
                                                         )}
+                                                        <Button 
+                                                            variant="outlined" 
+                                                            color="error" 
+                                                            onClick={() => deleteExercise(weekIndex, dayIndex, 'stretch', null, index)}
+                                                        >
+                                                            Delete
+                                                        </Button>
                                                     </Box>
                                                 ))}
                                             </Box>
