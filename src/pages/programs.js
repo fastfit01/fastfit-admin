@@ -195,6 +195,15 @@ const Programs = () => {
       .replace(/^./, str => str.toUpperCase());
   };
 
+  const handleCategoryAdded = async () => {
+    try {
+      const types = await getAllProgramCategories();
+      setCategories(types.map(type => type.name));
+    } catch (error) {
+      console.error("Error refreshing categories:", error);
+    }
+  };
+
   return (
     <ProtectedRoute>
       <Layout>
@@ -271,12 +280,17 @@ const Programs = () => {
             </Fab>
           </Tooltip>
 
-          <AddProgramsDialog open={openAddDialog} onClose={handleAddDialogClose} />
+          <AddProgramsDialog 
+            open={openAddDialog} 
+            onClose={handleAddDialogClose} 
+            onCategoryAdded={handleCategoryAdded}
+          />
           {selectedProgram && (
             <EditProgramsDialog
               open={openEditDialog}
               onClose={handleEditDialogClose}
               program={selectedProgram}
+              onCategoryAdded={handleCategoryAdded}
             />
           )}
         </Container>

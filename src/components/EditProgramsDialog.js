@@ -10,7 +10,7 @@ const formatCategoryName = (category) => {
         .replace(/^./, str => str.toUpperCase());
 };
 
-const EditProgramsDialog = ({ open, onClose, program }) => {
+const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
     const [editedProgram, setEditedProgram] = useState(() => ({
         id: program?.id ?? '',
         title: program?.title ?? '',
@@ -326,9 +326,14 @@ const EditProgramsDialog = ({ open, onClose, program }) => {
         if (newCategory.trim() !== '' && !programCategories.some(cat => cat.name === newCategory)) {
             try {
                 await addNewProgramCategory(newCategory);
-                setProgramCategories([...programCategories, { name: newCategory, imageUrl: '' }]);
+                const updatedCategories = await getAllProgramCategories();
+                setProgramCategories(updatedCategories);
                 setEditedProgram({ ...editedProgram, programCategory: newCategory });
                 setNewCategory('');
+                // Notify parent component about new category
+                if (onCategoryAdded) {
+                    await onCategoryAdded();
+                }
             } catch (error) {
                 console.error("Error adding new category:", error);
             }

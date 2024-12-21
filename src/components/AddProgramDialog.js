@@ -9,7 +9,7 @@ const formatCategoryName = (category) => {
     .replace(/^./, str => str.toUpperCase()); // Capitalize first letter
 };
 
-const AddProgramsDialog = ({ open, onClose }) => {
+const AddProgramsDialog = ({ open, onClose, onCategoryAdded }) => {
     const [program, setProgram] = useState({
         id: uuidv4(),
         title: '',
@@ -306,9 +306,14 @@ const AddProgramsDialog = ({ open, onClose }) => {
         if (newCategory.trim() !== '' && !programCategories.some(cat => cat.name === newCategory)) {
             try {
                 await addNewProgramCategory(newCategory);
-                setProgramCategories([...programCategories, { name: newCategory, imageUrl: '' }]);
+                const updatedCategories = await getAllProgramCategories();
+                setProgramCategories(updatedCategories);
                 setProgram({ ...program, programCategory: newCategory });
                 setNewCategory('');
+                // Notify parent component about new category
+                if (onCategoryAdded) {
+                    await onCategoryAdded();
+                }
             } catch (error) {
                 console.error("Error adding new category:", error);
             }
