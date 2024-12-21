@@ -207,19 +207,22 @@ export const addProgram = async (program) => {
     const cleanProgram = removeUndefinedValues(transformedProgram);
     await set(programRef, cleanProgram);
 
+    // Return the program in the format expected by the UI
     return {
       id: programId,
       ...updatedProgram,
-      weeks: updatedProgram.weeks.map(week => ({
+      programCategory: program.programCategory,
+      level: program.level,
+      weeks: updatedProgram.weeks?.map(week => ({
         ...week,
-        days: week.days.map(day => ({
+        days: week.days?.map(day => ({
           ...day,
-          workout: day.workout.map(set => ({
+          workout: day.workout?.map(set => ({
             ...set,
-            exercises: Array.isArray(set.exercises) ? set.exercises : Object.values(set.exercises)
-          }))
-        }))
-      }))
+            exercises: Array.isArray(set.exercises) ? set.exercises : []
+          })) || []
+        })) || []
+      })) || []
     };
   } catch (error) {
     console.error("Error adding/updating program:", error);
@@ -404,7 +407,6 @@ const deleteAllProgramFiles = async (programCategory, level, programId) => {
   }
 };
 
-
 export const getAllProgramCategories = async () => {
   try {
     const programsRef = ref(db, 'programs');
@@ -417,7 +419,18 @@ export const getAllProgramCategories = async () => {
       }));
       return categories;
     }
-    return [];
+    // If no categories exist, create default ones
+    const defaultCategories = [
+      'atGymWorkouts',
+      'atHomeWorkouts',
+      'balanceAndStability',
+      'cardioPrograms',
+      'coordinationAndAgilityPrograms',
+      'kettleBellOnlyPrograms',
+      'yogaPrograms'
+    ];
+    await Promise.all(defaultCategories.map(type => addNewProgramCategory(type)));
+    return defaultCategories.map(name => ({ name, imageUrl: '' }));
   } catch (error) {
     console.error("Error fetching program categories:", error);
     throw error;
@@ -449,18 +462,15 @@ export const getProgramsByCategory = async (category) => {
       const level = levelSnapshot.key;
       levelSnapshot.forEach((programSnapshot) => {
         const program = programSnapshot.val();
-        if (program.weeks) {
-          program.weeks = transformToArrayStructure(program.weeks);
-        }
         programs.push({
           id: programSnapshot.key,
-          title: program?.title,
-          description: program?.description,
+          title: program?.title || '',
+          description: program?.description || '',
           level: level,
-          programImageUrl: program?.programImageUrl,
-          guidedOrSelfGuidedProgram: program?.guidedOrSelfGuidedProgram,
-          duration: program?.duration,
-          weeks: program?.weeks,
+          programImageUrl: program?.programImageUrl || '',
+          guidedOrSelfGuidedProgram: program?.guidedOrSelfGuidedProgram || '',
+          duration: program?.duration || '',
+          weeks: program.weeks ? transformToArrayStructure(program.weeks) : [],
           programCategory: category
         });
       });
@@ -468,4 +478,18 @@ export const getProgramsByCategory = async (category) => {
   }
 
   return programs;
+};
+
+export const addNewProgramCategory = async (category) => {
+  try {
+    const categoryRef = ref(db, `programs/${category}`);
+    await set(categoryRef, {
+      categoryImageUrl: '',
+      programs: {}
+    });
+    return true;
+  } catch (error) {
+    console.error("Error adding new program category:", error);
+    throw error;
+  }
 };

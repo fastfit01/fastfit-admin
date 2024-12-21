@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Dialog,
     DialogTitle,
@@ -12,15 +12,17 @@ import {
     FormControl,
     Chip,
     Box,
-    CircularProgress
+    CircularProgress,
+    Grid
 } from '@mui/material';
 import { addMeditation } from '../firebase/meditationService';
+import { getAllMeditationCategories } from '../firebase/meditationService';
 
 const AddMeditationDialog = ({ open, onClose }) => {
     const [formData, setFormData] = useState({
         title: '',
         duration: '',
-        category: '',
+        category: 'focus',
         description: '',
         difficulty: '',
         tags: [],
@@ -30,6 +32,21 @@ const AddMeditationDialog = ({ open, onClose }) => {
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [newCategory, setNewCategory] = useState('');
+    const [isAddingCategory, setIsAddingCategory] = useState(false);
+    const [categories, setCategories] = useState([]);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const types = await getAllMeditationCategories();
+                setCategories(types);
+            } catch (error) {
+                console.error("Error fetching categories:", error);
+            }
+        };
+        fetchCategories();
+    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -57,7 +74,7 @@ const AddMeditationDialog = ({ open, onClose }) => {
                 setFormData({
                     title: '',
                     duration: '',
-                    category: '',
+                    category: 'focus',
                     description: '',
                     difficulty: '',
                     tags: [],
@@ -98,6 +115,22 @@ const AddMeditationDialog = ({ open, onClose }) => {
         }
     };
 
+    const handleAddCategoryClick = () => {
+        setIsAddingCategory(true);
+    };
+
+    const handleAddNewCategory = () => {
+        if (newCategory.trim() !== '' && !categories.some(cat => cat.name === newCategory)) {
+            setCategories([...categories, { name: newCategory, imageUrl: '' }]);
+            setFormData(prevData => ({
+                ...prevData,
+                category: newCategory
+            }));
+            setNewCategory('');
+        }
+        setIsAddingCategory(false);
+    };
+
     return (
         <Dialog open={open} onClose={() => onClose()} maxWidth="sm" fullWidth>
             <DialogTitle>Add New Meditation</DialogTitle>
@@ -124,18 +157,40 @@ const AddMeditationDialog = ({ open, onClose }) => {
                                 onChange={handleChange}
                                 fullWidth
                             />
-                            <FormControl fullWidth>
-                                <InputLabel sx={{ mt: "-8px" }}>Category</InputLabel>
-                                <Select
-                                    name="category"
-                                    value={formData.category}
-                                    onChange={handleChange}
-                                >
-                                    <MenuItem value="focus">Focus</MenuItem>
-                                    <MenuItem value="relaxation">Relaxation</MenuItem>
-                                    <MenuItem value="sleep">Sleep</MenuItem>
-                                </Select>
-                            </FormControl>
+                            <Grid container spacing={2}>
+                                <Grid item xs={6}>
+                                    <FormControl fullWidth>
+                                        <InputLabel sx={{ mt: "-8px" }}>Category</InputLabel>
+                                        <Select
+                                            name="category"
+                                            value={formData.category}
+                                            onChange={handleChange}
+                                        >
+                                            {categories.map((type) => (
+                                                <MenuItem key={type.name} value={type.name}>{type.name}</MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Button onClick={handleAddCategoryClick} variant="outlined" fullWidth sx={{ mt: 2 }}>
+                                        Add Category
+                                    </Button>
+                                </Grid>
+                                {isAddingCategory && (
+                                    <Grid item xs={12}>
+                                        <TextField
+                                            fullWidth
+                                            label="New Category"
+                                            value={newCategory}
+                                            onChange={(e) => setNewCategory(e.target.value)}
+                                        />
+                                        <Button onClick={handleAddNewCategory} variant="contained" sx={{ mt: 2 }}>
+                                            Add New Category
+                                        </Button>
+                                    </Grid>
+                                )}
+                            </Grid>
                             <TextField
                                 label="Description"
                                 name="description"
