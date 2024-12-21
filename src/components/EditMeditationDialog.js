@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, CircularProgress } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, CircularProgress, Grid } from '@mui/material';
 import { updateMeditation } from '../firebase/meditationService';
+import { getAllMeditationCategories } from '../firebase/meditationService';
 
 const EditMeditationDialog = ({ open, onClose, meditation }) => {
     const [title, setTitle] = useState('');
     const [duration, setDuration] = useState('');
     const [audioFile, setAudioFile] = useState(null);
-    const [category, setCategory] = useState('');
+    const [category, setCategory] = useState(meditation?.category || 'focus');
     const [description, setDescription] = useState('');
     const [difficulty, setDifficulty] = useState('');
     const [imageFile, setImageFile] = useState(null);
@@ -14,6 +15,9 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
     const [tags, setTags] = useState([]);
     const [currentTag, setCurrentTag] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [categories, setCategories] = useState([]);
+    const [newCategory, setNewCategory] = useState('');
+    const [isAddingCategory, setIsAddingCategory] = useState(false);
 
     useEffect(() => {
         if (meditation) {
@@ -28,6 +32,18 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
 
         console.log("meditation", meditation);
     }, [meditation]);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const types = await getAllMeditationCategories();
+                setCategories(types);
+            } catch (error) {
+                console.error("Error fetching categories:", error);
+            }
+        };
+        fetchCategories();
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -71,6 +87,19 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
         }
     };
 
+    const handleAddCategoryClick = () => {
+        setIsAddingCategory(true);
+    };
+
+    const handleAddNewCategory = () => {
+        if (newCategory.trim() !== '' && !categories.some(cat => cat.name === newCategory)) {
+            setCategories([...categories, { name: newCategory, imageUrl: '' }]);
+            setCategory(newCategory);
+            setNewCategory('');
+        }
+        setIsAddingCategory(false);
+    };
+
     return (
         <Dialog open={open} onClose={() => onClose()} maxWidth="sm" fullWidth>
             <DialogTitle>Edit Meditation</DialogTitle>
@@ -98,17 +127,39 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
                             value={duration}
                             onChange={(e) => setDuration(e.target.value)}
                         />
-                        <FormControl fullWidth margin="dense" >
-                            <InputLabel sx={{ mt: "-8px" }}>Category</InputLabel>
-                            <Select
-                                value={category}
-                                onChange={(e) => setCategory(e.target.value)}
-                            >
-                                <MenuItem value="focus">Focus</MenuItem>
-                                <MenuItem value="relaxation">Relaxation</MenuItem>
-                                <MenuItem value="sleep">Sleep</MenuItem>
-                            </Select>
-                        </FormControl>
+                        <Grid container spacing={2}>
+                            <Grid item xs={6}>
+                                <FormControl fullWidth margin="dense">
+                                    <InputLabel sx={{ mt: "-8px" }}>Category</InputLabel>
+                                    <Select
+                                        value={category}
+                                        onChange={(e) => setCategory(e.target.value)}
+                                    >
+                                        {categories.map((type) => (
+                                            <MenuItem key={type.name} value={type.name}>{type.name}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+                            <Grid item xs={6}>
+                                <Button onClick={handleAddCategoryClick} variant="outlined" fullWidth sx={{ mt: 2 }}>
+                                    Add Category
+                                </Button>
+                            </Grid>
+                            {isAddingCategory && (
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        label="New Category"
+                                        value={newCategory}
+                                        onChange={(e) => setNewCategory(e.target.value)}
+                                    />
+                                    <Button onClick={handleAddNewCategory} variant="contained" sx={{ mt: 2 }}>
+                                        Add New Category
+                                    </Button>
+                                </Grid>
+                            )}
+                        </Grid>
                         <TextField
                             margin="dense"
                             label="Description"

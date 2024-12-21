@@ -20,6 +20,7 @@ export const addMeditation = async (meditationData) => {
 
   const newMeditation = {
     ...otherData,
+    category: otherData.category || 'focus',
     createdAt: Date.now() / 1000,
   };
 
@@ -98,4 +99,83 @@ export const deleteMeditation = async (id) => {
 
   // Delete the meditation data
   await remove(meditationRef);
+};
+
+export const getAllMeditationCategories = async () => {
+  try {
+    const meditationsRef = ref(db, 'meditations');
+    const snapshot = await get(meditationsRef);
+    const categories = new Set();
+    
+    if (snapshot.exists()) {
+      snapshot.forEach((childSnapshot) => {
+        const meditation = childSnapshot.val();
+        if (meditation.category) {
+          categories.add(meditation.category);
+        }
+      });
+    }
+
+    // If no categories exist, create default ones
+    const defaultCategories = ['focus', 'relaxation', 'sleep'];
+    const finalCategories = categories.size > 0 ? Array.from(categories) : defaultCategories;
+    
+    return finalCategories.map(name => ({
+      name,
+      imageUrl: ''
+    }));
+  } catch (error) {
+    console.error("Error fetching meditation categories:", error);
+    throw error;
+  }
+};
+
+export const getMeditationsByCategory = async (category) => {
+  const meditationsRef = ref(db, 'meditations');
+  const snapshot = await get(meditationsRef);
+  const meditations = [];
+
+  if (snapshot.exists()) {
+    snapshot.forEach((childSnapshot) => {
+      const meditation = childSnapshot.val();
+      if (meditation.category === category) {
+        meditations.push({
+          id: childSnapshot.key,
+          ...meditation
+        });
+      }
+    });
+  }
+
+  return meditations;
+};
+
+export const addNewMeditationCategory = async (category) => {
+  try {
+    const meditationsRef = ref(db, 'meditations');
+    const snapshot = await get(meditationsRef);
+    const categories = new Set();
+    
+    if (snapshot.exists()) {
+      snapshot.forEach((childSnapshot) => {
+        const meditation = childSnapshot.val();
+        if (meditation.category) {
+          categories.add(meditation.category);
+        }
+      });
+    }
+
+    // Add the new category if it doesn't exist
+    if (!categories.has(category)) {
+      categories.add(category);
+    }
+
+    return Array.from(categories).map(name => ({
+      name,
+      imageUrl: ''
+    }));
+  } catch (error) {
+    console.error("Error adding new meditation category:", error);
+    throw error;
+  }
 };
