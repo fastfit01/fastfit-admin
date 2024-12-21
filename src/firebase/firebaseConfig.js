@@ -6,14 +6,14 @@ import { getStorage, ref as storageRef, deleteObject } from 'firebase/storage';
 
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAZFWAH_78ooJdsWWL2MnPWJh3S9j_xvp0",
-  authDomain: "fastfit-14a7f.firebaseapp.com",
-  databaseURL: "https://fastfit-14a7f-default-rtdb.firebaseio.com",
-  projectId: "fastfit-14a7f",
-  storageBucket: "fastfit-14a7f.appspot.com",
-  messagingSenderId: "343713290969",
-  appId: "1:343713290969:web:5667768f5807535cab3cc8",
-  measurementId: "G-P9Z979B6NP"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);
