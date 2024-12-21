@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, Typography, Grid, Checkbox, FormControlLabel, CircularProgress } from '@mui/material';
-import { addProgram } from '../firebase/programsService';
+import { addProgram, getAllProgramCategories, addNewProgramCategory } from '../firebase/programsService';
 import { v4 as uuidv4 } from 'uuid';
+
+const formatCategoryName = (category) => {
+  return category
+    .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+    .replace(/^./, str => str.toUpperCase()); // Capitalize first letter
+};
 
 const AddProgramsDialog = ({ open, onClose }) => {
     const [program, setProgram] = useState({
@@ -19,6 +25,9 @@ const AddProgramsDialog = ({ open, onClose }) => {
 
     const [currentTarget, setCurrentTarget] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [programCategories, setProgramCategories] = useState([]);
+    const [newCategory, setNewCategory] = useState('');
+    const [isAddingCategory, setIsAddingCategory] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -28,6 +37,18 @@ const AddProgramsDialog = ({ open, onClose }) => {
     useEffect(() => {
         console.log("program=>", program);
     }, [program]);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const types = await getAllProgramCategories();
+                setProgramCategories(types);
+            } catch (error) {
+                console.error("Error fetching categories:", error);
+            }
+        };
+        fetchCategories();
+    }, []);
 
     const deleteWeek = (weekIndex) => {
         setProgram(prevProgram => {
@@ -277,6 +298,24 @@ const AddProgramsDialog = ({ open, onClose }) => {
         });
     };
 
+    const handleAddCategoryClick = () => {
+        setIsAddingCategory(true);
+    };
+
+    const handleAddNewCategory = async () => {
+        if (newCategory.trim() !== '' && !programCategories.some(cat => cat.name === newCategory)) {
+            try {
+                await addNewProgramCategory(newCategory);
+                setProgramCategories([...programCategories, { name: newCategory, imageUrl: '' }]);
+                setProgram({ ...program, programCategory: newCategory });
+                setNewCategory('');
+            } catch (error) {
+                console.error("Error adding new category:", error);
+            }
+        }
+        setIsAddingCategory(false);
+    };
+
     return (
         <Dialog open={open} onClose={() => onClose()} maxWidth="lg" fullWidth>
             <DialogTitle>Add New Program</DialogTitle>
@@ -290,20 +329,34 @@ const AddProgramsDialog = ({ open, onClose }) => {
                         <Grid container spacing={2}>
                             <Grid item xs={12}>
                                 <FormControl fullWidth margin="normal">
-                                    <InputLabel sx={{ mt: "-8px" }}>Program category</InputLabel>
+                                    <InputLabel>Program Category</InputLabel>
                                     <Select
                                         name="programCategory"
                                         value={program.programCategory}
                                         onChange={handleChange}
                                     >
-                                        <MenuItem value="atGymWorkouts">At Gym Workouts</MenuItem>
-                                        <MenuItem value="atHomeWorkouts">At Home Workouts</MenuItem>
-                                        <MenuItem value="balanceAndStability">Balance and Stability</MenuItem>
-                                        <MenuItem value="cardioPrograms">Cardio Programs</MenuItem>
-                                        <MenuItem value="coordinationAndAgilityPrograms">Coordination and Agility Programs</MenuItem>
-                                        <MenuItem value="kettleBellOnlyPrograms">KettleBell Only Programs</MenuItem>
-                                        <MenuItem value="yogaPrograms">Yoga Programs</MenuItem>
+                                        {programCategories.map((category) => (
+                                            <MenuItem key={category.name} value={category.name}>
+                                                {formatCategoryName(category.name)}
+                                            </MenuItem>
+                                        ))}
                                     </Select>
+                                    <Button onClick={handleAddCategoryClick} variant="outlined" sx={{ mt: 1 }}>
+                                        Add New Category
+                                    </Button>
+                                    {isAddingCategory && (
+                                        <Box mt={1}>
+                                            <TextField
+                                                fullWidth
+                                                label="New Category"
+                                                value={newCategory}
+                                                onChange={(e) => setNewCategory(e.target.value)}
+                                            />
+                                            <Button onClick={handleAddNewCategory} variant="contained" sx={{ mt: 1 }}>
+                                                Add Category
+                                            </Button>
+                                        </Box>
+                                    )}
                                 </FormControl>
                             </Grid>
 

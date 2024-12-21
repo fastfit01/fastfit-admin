@@ -6,7 +6,7 @@ import Layout from '../components/Layout';
 import TabPanel from '../components/TabPanel';
 import SearchField from '../components/SearchField';
 import dynamic from 'next/dynamic';
-import { getProgramsByCategory, deleteProgram } from '../firebase/programsService';
+import { getProgramsByCategory, deleteProgram, getAllProgramCategories } from '../firebase/programsService';
 
 // Dynamically import dialogs
 const AddProgramsDialog = dynamic(() => import('../components/AddProgramDialog'), {
@@ -33,15 +33,7 @@ const Programs = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentTab, setCurrentTab] = useState(0);
-  const [categories] = useState([
-    'atGymWorkouts',
-    'atHomeWorkouts',
-    'balanceAndStability',
-    'cardioPrograms',
-    'coordinationAndAgilityPrograms',
-    'kettleBellOnlyPrograms',
-    'yogaPrograms'
-  ]);
+  const [categories, setCategories] = useState([]);
   const [loadingStates, setLoadingStates] = useState({});
 
   useEffect(() => {
@@ -74,6 +66,18 @@ const Programs = () => {
 
     fetchProgramsByCategory();
   }, [currentTab, categories]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const types = await getAllProgramCategories();
+        setCategories(types.map(type => type.name));
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleTabChange = async (event, newValue) => {
     setCurrentTab(newValue);
@@ -130,26 +134,48 @@ const Programs = () => {
     if (newProgram) {
       setPrograms(prev => ({
         ...prev,
-        [newProgram.programCategory]: [...prev[newProgram.programCategory], newProgram]
+        [newProgram.programCategory]: prev[newProgram.programCategory] ? 
+          [...prev[newProgram.programCategory], newProgram] : 
+          [newProgram]
       }));
     }
   };
 
-  const handleEditDialogClose = (updatedProgram) => {
+  const handleEditDialogClose = async (updatedProgram) => {
     setOpenEditDialog(false);
     if (updatedProgram) {
       try {
-        setPrograms(prev => ({
-          ...prev,
-          [updatedProgram.programCategory]: prev[updatedProgram.programCategory].map(p => p.id === updatedProgram.id ? updatedProgram : p)
-        }));
+        setIsLoading(true);
+        
+        // Fetch fresh data for both old and new categories if they're different
+        if (selectedProgram.programCategory !== updatedProgram.programCategory) {
+          const [oldCategoryData, newCategoryData] = await Promise.all([
+            getProgramsByCategory(selectedProgram.programCategory),
+            getProgramsByCategory(updatedProgram.programCategory)
+          ]);
+          
+          setPrograms(prev => ({
+            ...prev,
+            [selectedProgram.programCategory]: oldCategoryData,
+            [updatedProgram.programCategory]: newCategoryData
+          }));
+        } else {
+          // If same category, just refresh that category
+          const refreshedData = await getProgramsByCategory(updatedProgram.programCategory);
+          setPrograms(prev => ({
+            ...prev,
+            [updatedProgram.programCategory]: refreshedData
+          }));
+        }
+
         console.log("Program updated successfully:", updatedProgram);
       } catch (error) {
         console.error("Error updating program in state:", error);
+      } finally {
+        setIsLoading(false);
       }
-    } else {
-      console.log("Edit dialog closed without updates");
     }
+    setSelectedProgram(null);
   };
 
   const getCurrentCategoryPrograms = () => {
