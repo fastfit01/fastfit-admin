@@ -438,3 +438,34 @@ export const updateProgramCategoryImage = async (category, imageFile) => {
     throw error;
   }
 };
+
+export const getProgramsByCategory = async (category) => {
+  const programsRef = ref(db, `programs/${category}`);
+  const snapshot = await get(programsRef);
+  const programs = [];
+
+  if (snapshot.exists()) {
+    snapshot.forEach((levelSnapshot) => {
+      const level = levelSnapshot.key;
+      levelSnapshot.forEach((programSnapshot) => {
+        const program = programSnapshot.val();
+        if (program.weeks) {
+          program.weeks = transformToArrayStructure(program.weeks);
+        }
+        programs.push({
+          id: programSnapshot.key,
+          title: program?.title,
+          description: program?.description,
+          level: level,
+          programImageUrl: program?.programImageUrl,
+          guidedOrSelfGuidedProgram: program?.guidedOrSelfGuidedProgram,
+          duration: program?.duration,
+          weeks: program?.weeks,
+          programCategory: category
+        });
+      });
+    });
+  }
+
+  return programs;
+};

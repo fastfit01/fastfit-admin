@@ -1,5 +1,13 @@
 import { ref, get, set, push, remove, update } from 'firebase/database';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { 
+  getStorage, 
+  ref as storageRef, 
+  uploadBytes, 
+  getDownloadURL, 
+  deleteObject,
+  getMetadata,
+  getBytes
+} from 'firebase/storage';
 import { db } from './firebaseConfig';
 import { v4 as uuidv4 } from 'uuid'; // Assuming you are using UUID for generating IDs
 
@@ -80,40 +88,81 @@ export const addMeal = async (meal) => {
 
 export const updateMeal = async (id, meal, oldCategory, oldMealTime) => {
   try {
-    let mealImageUrl = meal.imageUrl;
-    if (meal.imageFile instanceof File) {
-      mealImageUrl = await uploadImageAndGetURL(meal.imageFile, meal.dietType, meal.mealTime, id);
+    const oldMealRef = ref(db, `meals/${oldCategory}/mealsData/${oldMealTime}/${id}`);
+    const oldMealSnapshot = await get(oldMealRef);
+    
+    if (!oldMealSnapshot.exists()) {
+      await addMeal({ ...meal, id });
+      return { id, ...meal, dietType: meal.dietType, mealTime: meal.mealTime };
     }
+
+    const oldMealData = oldMealSnapshot.val();
+    let mealImageUrl = meal.imageUrl;
+
+    // Handle image updates
+    if (meal.imageFile instanceof File) {
+      // If new image is being uploaded
+      mealImageUrl = await uploadImageAndGetURL(meal.imageFile, meal.dietType, meal.mealTime, id);
+      
+      // Delete old image if it exists
+      if (oldMealData.imageUrl) {
+        try {
+          const oldImagePath = decodeURIComponent(oldMealData.imageUrl.split('/o/')[1].split('?')[0]);
+          const oldImageRef = storageRef(storage, oldImagePath);
+          await deleteObject(oldImageRef);
+        } catch (imageError) {
+          console.warn("Error deleting old image:", imageError);
+        }
+      }
+    } else if (oldCategory !== meal.dietType || oldMealTime !== meal.mealTime) {
+      if (oldMealData.imageUrl) {
+        try {
+          const oldImagePath = decodeURIComponent(oldMealData.imageUrl.split('/o/')[1].split('?')[0]);
+          const fileName = oldImagePath.split('/').pop();
+          const newStoragePath = `meals/${meal.dietType}/mealsData/${meal.mealTime}/${fileName}`;
+          
+          const oldImageRef = storageRef(storage, oldImagePath);
+          const newImageRef = storageRef(storage, newStoragePath);
+
+          // Get the old file directly using Firebase Storage
+          const oldMetadata = await getMetadata(oldImageRef);
+          const oldBytes = await getBytes(oldImageRef);
+
+          // Upload to new location
+          await uploadBytes(newImageRef, oldBytes, {
+            contentType: oldMetadata.contentType,
+            customMetadata: oldMetadata.customMetadata
+          });
+          
+          mealImageUrl = await getDownloadURL(newImageRef);
+          
+          // Delete old image
+          await deleteObject(oldImageRef);
+        } catch (imageError) {
+          console.warn("Error moving image:", imageError);
+          mealImageUrl = oldMealData.imageUrl;
+        }
+      }
+    }
+
     const updatedMeal = {
       ...meal,
-      name: meal.name || 'Untitled Meal',  
+      name: meal.name || 'Untitled Meal',
       imageUrl: mealImageUrl,
     };
     delete updatedMeal.imageFile;
 
-    const oldMealRef = ref(db, `meals/${oldCategory}/mealsData/${oldMealTime}/${id}`);
-    const oldMealSnapshot = await get(oldMealRef);
-    if (!oldMealSnapshot.exists()) {
-      await addMeal({ ...meal, id });
-      return { id, ...updatedMeal, dietType: meal.dietType, mealTime: meal.mealTime };
-    }
-
+    // If category or meal time changed, delete old record and create new one
     if (oldCategory !== meal.dietType || oldMealTime !== meal.mealTime) {
-      const oldMealData = oldMealSnapshot.val();
-      if (oldMealData && oldMealData.imageUrl) {
-        const oldImageRef = storageRef(storage, oldMealData.imageUrl);
-        try {
-          await deleteObject(oldImageRef);
-        } catch (imageError) {
-          console.warn("Error deleting old meal image:", imageError);
-        }
-      }
       await remove(oldMealRef);
-      await addMeal({ ...meal, id });
+      const newMealRef = ref(db, `meals/${meal.dietType}/mealsData/${meal.mealTime}/${id}`);
+      await set(newMealRef, updatedMeal);
     } else {
+      // Otherwise just update existing record
       const mealRef = ref(db, `meals/${meal.dietType}/mealsData/${meal.mealTime}/${id}`);
       await update(mealRef, updatedMeal);
     }
+
     return { id, ...updatedMeal, dietType: meal.dietType, mealTime: meal.mealTime };
   } catch (error) {
     console.error("Error updating meal:", error);
@@ -149,6 +198,21 @@ export const deleteMeal = async (mealId, mealCategory, mealTime) => {
   }
 };
 
+export const addNewDietType = async (dietType) => {
+  try {
+    const dietTypeRef = ref(db, `meals/${dietType}`);
+    await set(dietTypeRef, {
+      dietTypeImageUrl: '',
+      mealsData: {}
+    });
+    return true;
+  } catch (error) {
+    console.error("Error adding new diet type:", error);
+    throw error;
+  }
+};
+
+// Update getAllDietTypes to handle empty database case
 export const getAllDietTypes = async () => {
   try {
     const mealsRef = ref(db, 'meals');
@@ -161,7 +225,10 @@ export const getAllDietTypes = async () => {
       }));
       return dietTypes;
     }
-    return [];
+    // If no diet types exist, create default ones
+    const defaultTypes = ['Keto', 'Paleo', 'Traditional', 'Vegan', 'Vegetarian'];
+    await Promise.all(defaultTypes.map(type => addNewDietType(type)));
+    return defaultTypes.map(name => ({ name, imageUrl: '' }));
   } catch (error) {
     console.error("Error fetching diet types:", error);
     throw error;
@@ -181,4 +248,32 @@ export const updateDietTypeCoverImage = async (dietType, imageFile) => {
     console.error("Error updating diet type cover image:", error);
     throw error;
   }
+};
+
+export const getMealsByCategory = async (category) => {
+  const mealsRef = ref(db, `meals/${category}/mealsData`);
+  const snapshot = await get(mealsRef);
+  const meals = [];
+
+  if (snapshot.exists()) {
+    snapshot.forEach((mealTimeSnapshot) => {
+      const mealTime = mealTimeSnapshot.key;
+      mealTimeSnapshot.forEach((mealSnapshot) => {
+        const mealData = mealSnapshot.val();
+        meals.push({
+          id: mealSnapshot.key,
+          name: mealData.name || '',
+          dietType: category,
+          mealTime,
+          ingredients: mealData.ingredients || '',
+          instructions: mealData.instructions || '',
+          imageUrl: mealData.imageUrl || '',
+          imageFile: null,
+          mealDuration: mealData?.mealDuration
+        });
+      });
+    });
+  }
+
+  return meals;
 };
