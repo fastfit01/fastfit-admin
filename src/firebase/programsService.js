@@ -1,6 +1,7 @@
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject, listAll } from 'firebase/storage';
 import { db, storage } from './firebaseConfig';
 import { ref, push, set, get, query, orderByChild, equalTo, remove, update } from "firebase/database";
+import { compressImage, shouldCompress } from './utils/imageCompression';
 
 const transformToArrayStructure = (weeks) => {
   return Object.entries(weeks).map(([weekKey, weekValue]) => ({
@@ -86,102 +87,145 @@ export const getPrograms = async () => {
 export const uploadFileToFirebase = async (file, path) => {
   if (!file) return null;
 
-  const fileRef = storageRef(storage, path);
-  await uploadBytes(fileRef, file);
-  const downloadURL = await getDownloadURL(fileRef);
-  return downloadURL;
+  try {
+    let fileToUpload = file;
+    
+    if (shouldCompress(file)) {
+      fileToUpload = await compressImage(file, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1024
+      });
+    }
+
+    const fileRef = storageRef(storage, path);
+    await uploadBytes(fileRef, fileToUpload);
+    const downloadURL = await getDownloadURL(fileRef);
+    return downloadURL;
+  } catch (error) {
+    console.error("Error uploading file:", error);
+    throw error;
+  }
 };
 
 export const uploadProgramFiles = async (program) => {
   const programId = program.id || Date.now().toString();
   const baseStoragePath = `programs/${program.programCategory}/${program.level}/${programId}`;
 
-  // Upload program image
-  if (program.programImageFile) {
-    program.programImageUrl = await uploadFileToFirebase(
-      program.programImageFile,
-      `${baseStoragePath}/programImageUrl/${program.programImageFile.name}`
-    );
-  }
+  try {
+    // Upload program image
+    if (program.programImageFile) {
+      let programImageToUpload = program.programImageFile;
+      if (shouldCompress(program.programImageFile)) {
+        programImageToUpload = await compressImage(program.programImageFile, {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1200 // Larger for program cover images
+        });
+      }
+      program.programImageUrl = await uploadFileToFirebase(
+        programImageToUpload,
+        `${baseStoragePath}/programImageUrl/${program.programImageFile.name}`
+      );
+    }
 
-  // Upload week images and exercise GIFs
-  if (program.weeks && Array.isArray(program.weeks)) {
-    for (let weekIndex = 0; weekIndex < program.weeks.length; weekIndex++) {
-      const week = program.weeks[weekIndex];
-      if (week.days && Array.isArray(week.days)) {
-        for (let dayIndex = 0; dayIndex < week.days.length; dayIndex++) {
-          const day = week.days[dayIndex];
+    // Upload week images and exercise GIFs
+    if (program.weeks && Array.isArray(program.weeks)) {
+      for (let weekIndex = 0; weekIndex < program.weeks.length; weekIndex++) {
+        const week = program.weeks[weekIndex];
+        if (week.days && Array.isArray(week.days)) {
+          for (let dayIndex = 0; dayIndex < week.days.length; dayIndex++) {
+            const day = week.days[dayIndex];
 
-          // Upload day image
-          if (day.imageFile) {
-            day.imageUrl = await uploadFileToFirebase(
-              day.imageFile,
-              `${baseStoragePath}/week${weekIndex + 1}/day${dayIndex + 1}/dayImage/${day.imageFile.name}`
-            );
-          }
+            // Upload day image
+            if (day.imageFile) {
+              let dayImageToUpload = day.imageFile;
+              if (shouldCompress(day.imageFile)) {
+                dayImageToUpload = await compressImage(day.imageFile, {
+                  maxSizeMB: 0.8,
+                  maxWidthOrHeight: 1024
+                });
+              }
+              day.imageUrl = await uploadFileToFirebase(
+                dayImageToUpload,
+                `${baseStoragePath}/week${weekIndex + 1}/day${dayIndex + 1}/dayImage/${day.imageFile.name}`
+              );
+            }
 
-          // Upload warm-up GIFs
-          if (day.warmUp && Array.isArray(day.warmUp)) {
-            for (let warmUpIndex = 0; warmUpIndex < day.warmUp.length; warmUpIndex++) {
-              const warmUpExercise = day.warmUp[warmUpIndex];
-              if (warmUpExercise.gifFile) {
-                warmUpExercise.gifUrl = await uploadFileToFirebase(
-                  warmUpExercise.gifFile,
-                  `${baseStoragePath}/week${weekIndex + 1}/day${dayIndex + 1}/warmUp/${warmUpIndex}/${warmUpExercise.gifFile.name}`
-                );
+            // Upload warm-up GIFs/images
+            if (day.warmUp && Array.isArray(day.warmUp)) {
+              for (let warmUpIndex = 0; warmUpIndex < day.warmUp.length; warmUpIndex++) {
+                const warmUpExercise = day.warmUp[warmUpIndex];
+                if (warmUpExercise.gifFile) {
+                  let warmUpFileToUpload = warmUpExercise.gifFile;
+                  if (shouldCompress(warmUpExercise.gifFile)) {
+                    warmUpFileToUpload = await compressImage(warmUpExercise.gifFile, {
+                      maxSizeMB: 0.5,
+                      maxWidthOrHeight: 800
+                    });
+                  }
+                  warmUpExercise.gifUrl = await uploadFileToFirebase(
+                    warmUpFileToUpload,
+                    `${baseStoragePath}/week${weekIndex + 1}/day${dayIndex + 1}/warmUp/${warmUpIndex}/${warmUpExercise.gifFile.name}`
+                  );
+                }
               }
             }
-          }
 
-          // Upload workout GIFs
-          if (day.workout && Array.isArray(day.workout)) {
-            for (let setIndex = 0; setIndex < day.workout.length; setIndex++) {
-              const set = day.workout[setIndex];
-              if (set.exercises && Array.isArray(set.exercises)) {
-                for (let exerciseIndex = 0; exerciseIndex < set.exercises.length; exerciseIndex++) {
-                  const exercise = set.exercises[exerciseIndex];
-                  if (exercise.gifFile) {
-                    exercise.gifUrl = await uploadFileToFirebase(
-                      exercise.gifFile,
-                      `${baseStoragePath}/week${weekIndex + 1}/day${dayIndex + 1}/workout/set${setIndex + 1}/${exerciseIndex}/${exercise.gifFile.name}`
+            // Handle mindfulness and stretch images
+            for (const section of ['mindfulness', 'stretch']) {
+              if (day[section] && Array.isArray(day[section])) {
+                for (let exerciseIndex = 0; exerciseIndex < day[section].length; exerciseIndex++) {
+                  const exercise = day[section][exerciseIndex];
+                  if (exercise.imageFile) {
+                    let imageToUpload = exercise.imageFile;
+                    if (shouldCompress(exercise.imageFile)) {
+                      imageToUpload = await compressImage(exercise.imageFile, {
+                        maxSizeMB: 0.5,
+                        maxWidthOrHeight: 800
+                      });
+                    }
+                    exercise.imageUrl = await uploadFileToFirebase(
+                      imageToUpload,
+                      `${baseStoragePath}/week${weekIndex + 1}/day${dayIndex + 1}/${section}/${exerciseIndex}/${exercise.imageFile.name}`
                     );
                   }
                 }
               }
             }
-          }
 
-          // Upload mindfulness images
-          if (day.mindfulness && Array.isArray(day.mindfulness)) {
-            for (let mindfulnessIndex = 0; mindfulnessIndex < day.mindfulness.length; mindfulnessIndex++) {
-              const mindfulness = day.mindfulness[mindfulnessIndex];
-              if (mindfulness.imageFile) {
-                mindfulness.imageUrl = await uploadFileToFirebase(
-                  mindfulness.imageFile,
-                  `${baseStoragePath}/week${weekIndex + 1}/day${dayIndex + 1}/mindfulness/${mindfulnessIndex}/${mindfulness.imageFile.name}`
-                );
-              }
-            }
-          }
-
-          // Upload stretch images
-          if (day.stretch && Array.isArray(day.stretch)) {
-            for (let stretchIndex = 0; stretchIndex < day.stretch.length; stretchIndex++) {
-              const stretch = day.stretch[stretchIndex];
-              if (stretch.imageFile) {
-                stretch.imageUrl = await uploadFileToFirebase(
-                  stretch.imageFile,
-                  `${baseStoragePath}/week${weekIndex + 1}/day${dayIndex + 1}/stretch/${stretchIndex}/${stretch.imageFile.name}`
-                );
+            // Upload workout GIFs/images
+            if (day.workout && Array.isArray(day.workout)) {
+              for (let setIndex = 0; setIndex < day.workout.length; setIndex++) {
+                const set = day.workout[setIndex];
+                if (set.exercises && Array.isArray(set.exercises)) {
+                  for (let exerciseIndex = 0; exerciseIndex < set.exercises.length; exerciseIndex++) {
+                    const exercise = set.exercises[exerciseIndex];
+                    if (exercise.gifFile) {
+                      let workoutFileToUpload = exercise.gifFile;
+                      if (shouldCompress(exercise.gifFile)) {
+                        workoutFileToUpload = await compressImage(exercise.gifFile, {
+                          maxSizeMB: 0.5,
+                          maxWidthOrHeight: 800
+                        });
+                      }
+                      exercise.gifUrl = await uploadFileToFirebase(
+                        workoutFileToUpload,
+                        `${baseStoragePath}/week${weekIndex + 1}/day${dayIndex + 1}/workout/set${setIndex + 1}/${exerciseIndex}/${exercise.gifFile.name}`
+                      );
+                    }
+                  }
+                }
               }
             }
           }
         }
       }
     }
-  }
 
-  return program;
+    return program;
+  } catch (error) {
+    console.error("Error uploading program files:", error);
+    throw error;
+  }
 };
 
 export const addProgram = async (program) => {

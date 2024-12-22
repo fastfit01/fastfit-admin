@@ -10,18 +10,36 @@ import {
 } from 'firebase/storage';
 import { db } from './firebaseConfig';
 import { v4 as uuidv4 } from 'uuid'; // Assuming you are using UUID for generating IDs
+import { compressImage, shouldCompress } from './utils/imageCompression';
 
 const storage = getStorage();
 
 export const uploadImageAndGetURL = async (imageFile, dietType, mealTime, mealId) => {
   if (!imageFile) return null;
 
-  const fileExtension = imageFile.name.split('.').pop();
-  const storagePath = `meals/${dietType}/mealsData/${mealTime}/${mealId}.${fileExtension}`;
-  const fileRef = storageRef(storage, storagePath);
-  await uploadBytes(fileRef, imageFile);
-  const downloadURL = await getDownloadURL(fileRef);
-  return downloadURL;  
+  try {
+    let fileToUpload = imageFile;
+    
+    // Compress image if needed
+    if (shouldCompress(imageFile)) {
+      fileToUpload = await compressImage(imageFile, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1024,
+        useWebWorker: true
+      });
+    }
+
+    const fileExtension = fileToUpload.name.split('.').pop();
+    const storagePath = `meals/${dietType}/mealsData/${mealTime}/${mealId}.${fileExtension}`;
+    const fileRef = storageRef(storage, storagePath);
+    
+    await uploadBytes(fileRef, fileToUpload);
+    const downloadURL = await getDownloadURL(fileRef);
+    return downloadURL;
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    throw error;
+  }
 };
 
 // Function to get all meals
@@ -239,7 +257,16 @@ export const updateDietTypeCoverImage = async (dietType, imageFile) => {
   try {
     if (!imageFile) return null;
 
-    const downloadURL = await uploadImageAndGetURL(imageFile, dietType, 'dietTypeCoverImage', 'cover');
+    let fileToUpload = imageFile;
+    
+    if (shouldCompress(imageFile)) {
+      fileToUpload = await compressImage(imageFile, {
+        maxSizeMB: 0.5, // Smaller size for cover images
+        maxWidthOrHeight: 800
+      });
+    }
+
+    const downloadURL = await uploadImageAndGetURL(fileToUpload, dietType, 'dietTypeCoverImage', 'cover');
     const dietTypeRef = ref(db, `meals/${dietType}`);
     await update(dietTypeRef, { dietTypeImageUrl: downloadURL });
 

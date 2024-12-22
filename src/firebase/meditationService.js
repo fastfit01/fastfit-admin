@@ -1,6 +1,7 @@
 import { ref, push, set, get, remove, update } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from './firebaseConfig';
+import { compressImage, shouldCompress } from './utils/imageCompression';
 
 export const getMeditations = async () => {
   const meditationsRef = ref(db, 'meditations');
@@ -68,9 +69,25 @@ export const updateMeditation = async (id, meditationData) => {
 };
 
 const uploadFile = async (meditationId, fileType, file) => {
-  const fileRef = storageRef(storage, `meditations/${meditationId}/${fileType}/${file.name}`);
-  await uploadBytes(fileRef, file);
-  return await getDownloadURL(fileRef);
+  try {
+    let fileToUpload = file;
+
+    // Only compress images, not audio files
+    if (fileType === 'image' && shouldCompress(file)) {
+      fileToUpload = await compressImage(file, {
+        maxSizeMB: 0.8,
+        maxWidthOrHeight: 1024,
+        useWebWorker: true
+      });
+    }
+
+    const fileRef = storageRef(storage, `meditations/${meditationId}/${fileType}/${file.name}`);
+    await uploadBytes(fileRef, fileToUpload);
+    return await getDownloadURL(fileRef);
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    throw error;
+  }
 };
 
 const deleteFile = async (fileUrl) => {
