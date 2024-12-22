@@ -304,3 +304,47 @@ export const getMealsByCategory = async (category) => {
 
   return meals;
 };
+
+export const deleteDietType = async (dietType) => {
+  try {
+    // Get all meals in this diet type first
+    const mealsRef = ref(db, `meals/${dietType}`);
+    const snapshot = await get(mealsRef);
+    
+    if (snapshot.exists()) {
+      // Delete all images in storage for this diet type
+      const dietTypeData = snapshot.val();
+      if (dietTypeData.dietTypeImageUrl) {
+        try {
+          const imageRef = storageRef(storage, dietTypeData.dietTypeImageUrl);
+          await deleteObject(imageRef);
+        } catch (error) {
+          console.warn("Error deleting diet type cover image:", error);
+        }
+      }
+
+      // Delete all meal images in this category
+      if (dietTypeData.mealsData) {
+        Object.values(dietTypeData.mealsData).forEach(async (mealTimeData) => {
+          Object.values(mealTimeData).forEach(async (meal) => {
+            if (meal.imageUrl) {
+              try {
+                const imageRef = storageRef(storage, meal.imageUrl);
+                await deleteObject(imageRef);
+              } catch (error) {
+                console.warn("Error deleting meal image:", error);
+              }
+            }
+          });
+        });
+      }
+    }
+
+    // Delete the diet type from database
+    await remove(mealsRef);
+    return true;
+  } catch (error) {
+    console.error("Error deleting diet type:", error);
+    throw error;
+  }
+};

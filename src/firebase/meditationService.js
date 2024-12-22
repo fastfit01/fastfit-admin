@@ -196,3 +196,48 @@ export const addNewMeditationCategory = async (category) => {
     throw error;
   }
 };
+
+export const deleteMeditationCategory = async (category) => {
+  try {
+    // Get all meditations in this category
+    const meditationsRef = ref(db, 'meditations');
+    const snapshot = await get(meditationsRef);
+    
+    if (snapshot.exists()) {
+      const updates = {};
+      snapshot.forEach((childSnapshot) => {
+        const meditation = childSnapshot.val();
+        if (meditation.category === category) {
+          // Delete meditation files
+          if (meditation.audioUrl) {
+            try {
+              const audioRef = storageRef(storage, meditation.audioUrl);
+              deleteObject(audioRef);
+            } catch (error) {
+              console.warn("Error deleting audio file:", error);
+            }
+          }
+          if (meditation.imageUrl) {
+            try {
+              const imageRef = storageRef(storage, meditation.imageUrl);
+              deleteObject(imageRef);
+            } catch (error) {
+              console.warn("Error deleting image file:", error);
+            }
+          }
+          // Mark meditation for deletion
+          updates[`meditations/${childSnapshot.key}`] = null;
+        }
+      });
+      
+      // Delete all meditations in this category
+      if (Object.keys(updates).length > 0) {
+        await update(ref(db), updates);
+      }
+    }
+    return true;
+  } catch (error) {
+    console.error("Error deleting meditation category:", error);
+    throw error;
+  }
+};
