@@ -1,13 +1,12 @@
 import React, { useState, useEffect, Suspense } from 'react';
-import { Grid, Card, CardContent, Typography, CardMedia, Fab, IconButton, Box, CircularProgress, Container, Tooltip, Tabs, Tab } from '@mui/material';
-import { getMeals, deleteMeal, updateMeal } from '../firebase/mealsService';  
+import { Grid, Card, CardContent, Typography, CardMedia, Fab, IconButton, Box, CircularProgress, Container, Tooltip, Tabs, Tab, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
+import { getMeals, deleteMeal, updateMeal, deleteDietType, getAllDietTypes } from '../firebase/mealsService';  
 import dynamic from 'next/dynamic';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import SearchField from '../components/SearchField';
 import TabPanel from '../components/TabPanel';
-import { getAllDietTypes } from '../firebase/mealsService';
 
 // Dynamically import dialogs
 const AddMealsDialog = dynamic(() => import('../components/addMealsDialog'), {
@@ -36,6 +35,8 @@ const Meals = () => {
   const [currentTab, setCurrentTab] = useState(0);
   const [categories, setCategories] = useState([]);
   const [loadingStates, setLoadingStates] = useState({});
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -133,6 +134,30 @@ const Meals = () => {
     );
   };
 
+  const handleDeleteCategory = (category) => {
+    setCategoryToDelete(category);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (categoryToDelete) {
+      setIsLoading(true);
+      try {
+        await deleteDietType(categoryToDelete);
+        const types = await getAllDietTypes();
+        setCategories(types.map(type => type.name));
+        setCurrentTab(0);
+        await fetchMeals();
+      } catch (error) {
+        console.error("Error deleting category:", error);
+      } finally {
+        setIsLoading(false);
+        setDeleteDialogOpen(false);
+        setCategoryToDelete(null);
+      }
+    }
+  };
+
   return (
     <ProtectedRoute>
       <Layout>
@@ -152,7 +177,23 @@ const Meals = () => {
               {categories.map((category, index) => (
                 <Tab 
                   key={category} 
-                  label={category}
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      {category}
+                      {categories.length > 1 && (
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCategory(category);
+                          }}
+                          sx={{ ml: 1 }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
+                  }
                   id={`tab-${index}`}
                   aria-controls={`tabpanel-${index}`}
                 />
@@ -227,6 +268,23 @@ const Meals = () => {
               key={selectedMeal.id} 
             />
           )}
+
+          <Dialog
+            open={deleteDialogOpen}
+            onClose={() => setDeleteDialogOpen(false)}
+          >
+            <DialogTitle>Delete Category</DialogTitle>
+            <DialogContent>
+              Are you sure you want to delete the category "{categoryToDelete}"? 
+              This will permanently delete all meals in this category.
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleConfirmDelete} color="error">
+                Delete
+              </Button>
+            </DialogActions>
+          </Dialog>
         </Container>
       </Layout>
     </ProtectedRoute>

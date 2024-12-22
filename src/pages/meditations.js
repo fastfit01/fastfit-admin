@@ -20,7 +20,7 @@ import { ProtectedRoute } from '../components/ProtectedRoute';
 import Layout from '../components/Layout';
 import AddMeditationDialog from '../components/AddMeditationDialog';
 import EditMeditationDialog from '../components/EditMeditationDialog';
-import { getMeditations, deleteMeditation, getAllMeditationCategories, getMeditationsByCategory } from '../firebase/meditationService';
+import { getMeditations, deleteMeditation, getAllMeditationCategories, getMeditationsByCategory, deleteMeditationCategory } from '../firebase/meditationService';
 import SearchField from '../components/SearchField';
 import TabPanel from '../components/TabPanel';
 
@@ -185,6 +185,23 @@ const Meditations = () => {
     );
   };
 
+  const handleDeleteCategory = async (category) => {
+    if (window.confirm(`Are you sure you want to delete the category "${category}"? This will permanently delete all meditations in this category.`)) {
+      setIsLoading(true);
+      try {
+        await deleteMeditationCategory(category);
+        const types = await getAllMeditationCategories();
+        setCategories(types.map(type => type.name));
+        setCurrentTab(0);
+        await fetchMeditations();
+      } catch (error) {
+        console.error("Error deleting category:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
   return (
     <ProtectedRoute>
       <Layout>
@@ -204,7 +221,23 @@ const Meditations = () => {
               {categories.map((category, index) => (
                 <Tab 
                   key={category} 
-                  label={category.charAt(0).toUpperCase() + category.slice(1)}
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      {category}
+                      {categories.length > 1 && (
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCategory(category);
+                          }}
+                          sx={{ ml: 1 }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
+                  }
                   id={`tab-${index}`}
                   aria-controls={`tabpanel-${index}`}
                 />
