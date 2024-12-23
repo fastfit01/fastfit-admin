@@ -198,22 +198,41 @@ const updateProgramCategoryCoverImage = async (category, imageFile) => {
 // Delete program category
 const deleteProgramCategory = async (category) => {
   try {
+    // Get all programs in this category first
     const categoryRef = ref(db, `programs/${category}`);
     const snapshot = await get(categoryRef);
     
     if (snapshot.exists()) {
-      // Delete category cover image
+      // Delete category cover image if exists
       const categoryData = snapshot.val();
       if (categoryData.categoryImageUrl) {
-        await deleteOldImage(categoryData.categoryImageUrl);
+        try {
+          const imageRef = storageRef(storage, categoryData.categoryImageUrl);
+          await deleteObject(imageRef);
+        } catch (error) {
+          console.warn("Error deleting category cover image:", error);
+        }
       }
 
-      // Delete all program images in this category
-      await deleteAllProgramFiles(category);
-    }
+      // Delete all program files in storage
+      const folderRef = storageRef(storage, `programs/${category}`);
+      try {
+        const filesList = await listAll(folderRef);
+        
+        // Delete all files
+        await Promise.all(filesList.items.map(fileRef => deleteObject(fileRef)));
+        
+        // Recursively delete subfolders
+        await Promise.all(filesList.prefixes.map(prefix => 
+          deleteAllProgramFiles(prefix.fullPath)
+        ));
+      } catch (error) {
+        console.warn("Error deleting program files:", error);
+      }
 
-    // Delete the category from database
-    await remove(categoryRef);
+      // Delete the category from database
+      await remove(categoryRef);
+    }
     return true;
   } catch (error) {
     console.error("Error deleting program category:", error);
@@ -221,16 +240,18 @@ const deleteProgramCategory = async (category) => {
   }
 };
 
-// Delete all program files in a category
-const deleteAllProgramFiles = async (category) => {
+// Helper function to recursively delete files
+const deleteAllProgramFiles = async (path) => {
   try {
-    const folderRef = storageRef(storage, `programs/${category}`);
+    const folderRef = storageRef(storage, path);
     const filesList = await listAll(folderRef);
     
     const deletePromises = filesList.items.map(fileRef => deleteObject(fileRef));
     await Promise.all(deletePromises);
     
-    const deleteFolderPromises = filesList.prefixes.map(prefix => deleteAllProgramFiles(prefix.fullPath));
+    const deleteFolderPromises = filesList.prefixes.map(prefix => 
+      deleteAllProgramFiles(prefix.fullPath)
+    );
     await Promise.all(deleteFolderPromises);
   } catch (error) {
     console.warn("Error deleting program files:", error);
