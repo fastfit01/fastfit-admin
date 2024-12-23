@@ -447,33 +447,68 @@ const uploadFile = async (file, path) => {
   }
 };
 
-// Move program files helper
-const moveProgramFiles = async (oldCategory, oldLevel, programId, newCategory, newLevel) => {
+//  i want to handle the program categopry and level chnAGE if user change it how can i handle, right now its getting moved to another cateegory but 
+// right now if we change the category and level then  the copy of the program is still showing on older category and level. also storeage its not getting chnaged, how can i handle it 
+const handleProgramCategoryAndLevelChange = async (oldCategory, oldLevel, programId, newCategory, newLevel) => {
   try {
-    const oldPath = `programs/${oldCategory}/${oldLevel}/${programId}`;
-    const newPath = `programs/${newCategory}/${newLevel}/${programId}`;
-    const oldFolderRef = storageRef(storage, oldPath);
+    // Get program data from old location
+    const oldProgramRef = ref(db, `programs/${oldCategory}/${oldLevel}/${programId}`);
+    const snapshot = await get(oldProgramRef);
+    if (!snapshot.exists()) {
+      throw new Error('Program not found');
+    }
+    const programData = snapshot.val();
+
+    // Update program data with new category and level
+    const updatedProgram = {
+      ...programData,
+      programCategory: newCategory,
+      level: newLevel
+    };
+
+    // Move program data to new location
+    const newProgramRef = ref(db, `programs/${newCategory}/${newLevel}/${programId}`);
+    await set(newProgramRef, updatedProgram);
+
+    // Move storage files
+    const oldStoragePrefix = `programs/${oldCategory}/${oldLevel}/${programId}`;
+    const newStoragePrefix = `programs/${newCategory}/${newLevel}/${programId}`;
     
+    // List all files in old location
+    const oldFolderRef = storageRef(storage, oldStoragePrefix);
+    console.log("oldFolderRef", oldFolderRef);
     const filesList = await listAll(oldFolderRef);
-    
-    // Copy files to new location
-    for (const itemRef of filesList.items) {
-      const newItemPath = itemRef.fullPath.replace(oldPath, newPath);
-      const newItemRef = storageRef(storage, newItemPath);
+    console.log("filesList", filesList);
+
+    // Move each file to new location
+    for (const item of filesList.items) {
+      console.log("item", item);
+      const oldPath = item.fullPath;
+      const newPath = oldPath.replace(oldStoragePrefix, newStoragePrefix);
       
-      // Download old file
-      const oldFileBlob = await getDownloadURL(itemRef);
-      const response = await fetch(oldFileBlob);
-      const fileBlob = await response.blob();
+      // Download file
+      const fileData = await getDownloadURL(item);
+      const response = await fetch(fileData);
+      const blob = await response.blob();
 
       // Upload to new location
-      await uploadBytes(newItemRef, fileBlob);
+      const newFileRef = storageRef(storage, newPath);
+      console.log("newFileRef", newFileRef);
+      await uploadBytes(newFileRef, blob);
 
-      // Delete old file
-      await deleteObject(itemRef);
+      // Delete from old location
+      await deleteObject(item);
     }
+
+    // Delete program from old location
+    await remove(oldProgramRef);
+    console.log("oldProgramRef", oldProgramRef);
+    console.log("updatedProgram after moving", updatedProgram);
+
+    return updatedProgram;
+
   } catch (error) {
-    console.error("Error moving program files:", error);
+    console.error("Error moving program:", error);
     throw error;
   }
 };
@@ -843,5 +878,6 @@ export {
   handleMindfulnessImageUpload,
   handleStretchImageUpload,
   handleFileUploadWithReplacement,
-  transformWorkoutForFirebase
+  transformWorkoutForFirebase,
+  handleProgramCategoryAndLevelChange
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, Typography, Grid, Checkbox, FormControlLabel, IconButton, CircularProgress } from '@mui/material';
-import { handleFileUploadWithReplacement, updateProgram } from '../firebase/programsService';
+import { handleFileUploadWithReplacement, updateProgram, handleProgramCategoryAndLevelChange } from '../firebase/programsService';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { getAllProgramCategories, addNewProgramCategory, getDayDetails, getWeekDetails, updateDayDetails, updateDayEquipment, updateDayFocus, updateDayLevel, updateDayDuration } from '../firebase/programsService';
 import dynamic from 'next/dynamic';
@@ -444,11 +444,32 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            const updatedProgram = await updateProgram(oldProgram.id, editedProgram, oldProgram.programCategory, oldProgram.level);
-            console.log("Updated program received:", updatedProgram);
+            // Check if category or level changed
+            if (oldProgram.programCategory !== editedProgram.programCategory || 
+                oldProgram.level !== editedProgram.level) {
+                
+                // Move program to new category/level
+                await handleProgramCategoryAndLevelChange(
+                    oldProgram.programCategory,
+                    oldProgram.level,
+                    oldProgram.id,
+                    editedProgram.programCategory,
+                    editedProgram.level
+                );
+            }
+
+            // Update program data
+            const updatedProgram = await updateProgram(
+                oldProgram.id, 
+                editedProgram,
+                editedProgram.programCategory,
+                editedProgram.level
+            );
+
             onClose(updatedProgram);
         } catch (error) {
             console.error('Error updating program:', error);
+            setError('Failed to update program: ' + error.message);
         } finally {
             setIsLoading(false);
         }
