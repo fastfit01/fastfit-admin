@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, Typography, Grid, Checkbox, FormControlLabel, IconButton, CircularProgress } from '@mui/material';
-import { updateProgram } from '../firebase/programsService';
+import { handleFileUploadWithReplacement, updateProgram } from '../firebase/programsService';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { getAllProgramCategories, addNewProgramCategory } from '../firebase/programsService';
+import { getAllProgramCategories, addNewProgramCategory, getDayDetails, getWeekDetails, updateDayDetails, updateDayEquipment, updateDayFocus, updateDayLevel, updateDayDuration } from '../firebase/programsService';
+import dynamic from 'next/dynamic';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ErrorAlert from './ErrorAlert';
 
 const formatCategoryName = (category) => {
     return category
         .replace(/([A-Z])/g, ' $1')
         .replace(/^./, str => str.toUpperCase());
 };
+
+const DaySection = dynamic(() => import('./program-sections/DaySection'), {
+    loading: () => <CircularProgress />,
+    ssr: false
+});
 
 const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
     const [editedProgram, setEditedProgram] = useState(() => ({
@@ -21,8 +30,8 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
         programImageFile: null,
         duration: program?.duration ?? '',
         guidedOrSelfGuidedProgram: program?.guidedOrSelfGuidedProgram ?? '',
-        weeks: program?.weeks?.map(week => ({
-            days: week.days?.map(day => ({
+        weeks: program?.weeks ? program.weeks.map((week, weekIndex) => ({
+            days: week.days.map((day, dayIndex) => ({
                 title: day?.title ?? '',
                 description: day?.description ?? '',
                 duration: day?.duration ?? '',
@@ -33,9 +42,10 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
                 workout: day?.workout ?? [],
                 mindfulness: day?.mindfulness ?? [],
                 stretch: day?.stretch ?? [],
-                imageUrl: day?.imageUrl ?? null
-            })) ?? []
-        })) ?? []
+                imageUrl: day?.imageUrl ?? null,
+                imageFile: null
+            }))
+        })) : []
     }));
     const [oldProgram, setOldProgram] = useState(program);
     const [currentTarget, setCurrentTarget] = useState('');
@@ -43,6 +53,10 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
     const [programCategories, setProgramCategories] = useState([]);
     const [newCategory, setNewCategory] = useState('');
     const [isAddingCategory, setIsAddingCategory] = useState(false);
+    const [expandedWeeks, setExpandedWeeks] = useState({});
+    const [loadingWeeks, setLoadingWeeks] = useState({});
+    const [uploadingFiles, setUploadingFiles] = useState({});
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -67,8 +81,8 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
             programImageFile: null,
             duration: program?.duration ?? '',
             guidedOrSelfGuidedProgram: program?.guidedOrSelfGuidedProgram ?? '',
-            weeks: program?.weeks?.map(week => ({
-                days: week.days?.map(day => ({
+            weeks: program?.weeks ? program.weeks.map((week, weekIndex) => ({
+                days: week.days.map((day, dayIndex) => ({
                     title: day?.title ?? '',
                     description: day?.description ?? '',
                     duration: day?.duration ?? '',
@@ -79,9 +93,10 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
                     workout: day?.workout ?? [],
                     mindfulness: day?.mindfulness ?? [],
                     stretch: day?.stretch ?? [],
-                    imageUrl: day?.imageUrl
-                })) ?? []
-            })) ?? []
+                    imageUrl: day?.imageUrl ?? null,
+                    imageFile: null
+                }))
+            })) : []
         });
         setOldProgram(program);
     }, [program]);
@@ -89,16 +104,6 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setEditedProgram({ ...editedProgram, [name]: value });
-    };
-
-    const deleteSet = (weekIndex, dayIndex, setIndex) => {
-        setEditedProgram(prevProgram => {
-            const newWeeks = [...prevProgram?.weeks];
-            const newDays = [...newWeeks[weekIndex].days];
-            newDays[dayIndex].workout = newDays[dayIndex].workout.filter((_, index) => index !== setIndex);
-            newWeeks[weekIndex].days = newDays;
-            return { ...prevProgram, weeks: newWeeks };
-        });
     };
 
     useEffect(() => {
@@ -160,42 +165,151 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
         });
     };
 
-    const handleDayChange = (weekIndex, dayIndex, field, value) => {
+    const deleteSet = (weekIndex, dayIndex, setIndex) => {
         setEditedProgram(prevProgram => {
             const newWeeks = [...prevProgram?.weeks];
-            newWeeks[weekIndex].days[dayIndex][field] = value;
+            const workout = newWeeks[weekIndex].days[dayIndex].workout;
+            const newWorkout = {};
+            
+            // Rebuild workout object without the deleted set
+            Object.entries(workout)
+                .filter(([key]) => key !== `set${setIndex + 1}`)
+                .forEach(([key, value], index) => {
+                    newWorkout[`set${index + 1}`] = value;
+                });
+                
+            newWeeks[weekIndex].days[dayIndex].workout = newWorkout;
+            return { ...prevProgram, weeks: newWeeks };
+        });
+    };
+
+    const addExerciseToSet = (weekIndex, dayIndex, setIndex) => {
+        setEditedProgram(prevProgram => {
+            const newWeeks = [...prevProgram.weeks];
+            const setKey = `set${setIndex + 1}`;
+            if (!newWeeks[weekIndex].days[dayIndex].workout[setKey]) {
+                newWeeks[weekIndex].days[dayIndex].workout[setKey] = [];
+            }
+            newWeeks[weekIndex].days[dayIndex].workout[setKey].push({
+                name: '',
+                reps: '',
+                rest: '',
+                tempo: '',
+                duration: '',
+                gifUrl: null,
+                gifFile: null
+            });
+            return { ...prevProgram, weeks: newWeeks };
+        });
+    };
+
+    const handleDayChange = (weekIndex, dayIndex, field, setIndex, exerciseIndex, subField, value) => {
+        console.log("handleDayChange", weekIndex, dayIndex, field, setIndex, exerciseIndex, subField, value);
+        
+        setEditedProgram(prevProgram => {
+            const newWeeks = [...prevProgram.weeks];
+            const day = newWeeks[weekIndex].days[dayIndex];
+
+            // Handle image file uploads
+            if (field === 'imageFile') {
+                const previewUrl = URL.createObjectURL(value);
+                day.imageUrl = previewUrl;
+                day.imageFile = value;
+                return { ...prevProgram, weeks: newWeeks };
+            }
+
+            // Handle simple fields (from DayDetailsSection)
+            if (!setIndex && !exerciseIndex && !subField) {
+                day[field] = value;
+                return { ...prevProgram, weeks: newWeeks };
+            }
+
+            // Handle different section types
+            switch (field) {
+                case 'warmUp':
+                    if (!day.warmUp) day.warmUp = [];
+                    if (exerciseIndex !== null) {
+                        if (!day.warmUp[exerciseIndex]) {
+                            day.warmUp[exerciseIndex] = {
+                                name: '',
+                                duration: '',
+                                reps: '',
+                                gifUrl: null,
+                                gifFile: null
+                            };
+                        }
+                        day.warmUp[exerciseIndex][subField] = value;
+                    }
+                    break;
+
+                case 'workout':
+                    if (!day.workout) day.workout = [];
+                    if (setIndex !== null && exerciseIndex !== null) {
+                        if (!day.workout[setIndex]) {
+                            day.workout[setIndex] = {
+                                setName: `Set ${setIndex + 1}`,
+                                exercises: []
+                            };
+                        }
+                        if (!day.workout[setIndex].exercises[exerciseIndex]) {
+                            day.workout[setIndex].exercises[exerciseIndex] = {
+                                name: '',
+                                reps: '',
+                                rest: '',
+                                tempo: '',
+                                duration: '',
+                                gifUrl: null,
+                                gifFile: null
+                            };
+                        }
+                        day.workout[setIndex].exercises[exerciseIndex][subField] = value;
+                    }
+                    break;
+
+                case 'mindfulness':
+                case 'stretch':
+                    if (!day[field]) day[field] = [];
+                    if (exerciseIndex !== null) {
+                        if (!day[field][exerciseIndex]) {
+                            day[field][exerciseIndex] = {
+                                name: '',
+                                duration: '',
+                                imageUrl: null,
+                                imageFile: null
+                            };
+                        }
+                        day[field][exerciseIndex][subField] = value;
+                    }
+                    break;
+
+                default:
+                    // For any other fields, update directly
+                    day[field] = value;
+                    break;
+            }
+
             return { ...prevProgram, weeks: newWeeks };
         });
     };
 
     const handleTargetAreaChange = (weekIndex, dayIndex) => {
         if (currentTarget) {
-            const newTargetArea = [...editedProgram?.weeks[weekIndex]?.days[dayIndex]?.targetArea, currentTarget];
-            handleDayChange(weekIndex, dayIndex, 'targetArea', newTargetArea);
+            const existingTargets = editedProgram?.weeks[weekIndex]?.days[dayIndex]?.targetArea || [];
+            const newTarget = currentTarget.split('');  // Convert to array of characters
+            handleDayChange(weekIndex, dayIndex, 'targetArea', null, null, null, [...existingTargets, newTarget]);
             setCurrentTarget('');
         }
     };
 
     const removeTargetArea = (weekIndex, dayIndex, targetIndex) => {
         const newTargetArea = editedProgram?.weeks[weekIndex]?.days[dayIndex]?.targetArea?.filter((_, index) => index !== targetIndex);
-        handleDayChange(weekIndex, dayIndex, 'targetArea', newTargetArea);
+        handleDayChange(weekIndex, dayIndex, 'targetArea', null, null, null, newTargetArea);
     };
 
     const addExercise = (weekIndex, dayIndex, type, setIndex = null) => {
         setEditedProgram(prevProgram => {
             const newWeeks = [...prevProgram?.weeks];
-            if (type === 'warmUp') {
-                if (!newWeeks[weekIndex]?.days[dayIndex]?.warmUp) {
-                    newWeeks[weekIndex].days[dayIndex].warmUp = [];
-                }
-                newWeeks[weekIndex].days[dayIndex].warmUp.push({
-                    name: '',
-                    duration: '',
-                    reps: '',
-                    gifUrl: null,
-                    gifFile: null
-                });
-            } else if (type === 'workout') {
+            if (type === 'workout') {
                 if (!newWeeks[weekIndex].days[dayIndex].workout) {
                     newWeeks[weekIndex].days[dayIndex].workout = [];
                 }
@@ -219,18 +333,52 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
         });
     };
 
-    const handleAddExercise = (weekIndex, dayIndex, type) => {
+    const handleAddExercise = (weekIndex, dayIndex, type, setIndex = null) => {
         setEditedProgram(prevProgram => {
             const newWeeks = [...prevProgram.weeks];
-            if (!newWeeks[weekIndex].days[dayIndex][type]) {
-                newWeeks[weekIndex].days[dayIndex][type] = [];
-            }
-            newWeeks[weekIndex].days[dayIndex][type].push({
+            const day = newWeeks[weekIndex].days[dayIndex];
+
+            switch (type) {
+                case 'workout':
+                    if (!day.workout) day.workout = [];
+                    if (!day.workout[setIndex]) {
+                        day.workout[setIndex] = {
+                            setName: `Set ${setIndex + 1}`,
+                            exercises: []
+                        };
+                    }
+                    day.workout[setIndex].exercises.push({
+                        name: '',
+                        reps: '',
+                        rest: '',
+                        tempo: '',
+                        duration: '',
+                        gifUrl: null,
+                        gifFile: null
+                    });
+                    break;
+
+                case 'mindfulness':
+                    if (!day.mindfulness) day.mindfulness = [];
+                    day.mindfulness.push({
                 name: '',
                 duration: '',
                 imageUrl: null,
                 imageFile: null
             });
+                    break;
+
+                case 'stretch':
+                    if (!day.stretch) day.stretch = [];
+                    day.stretch.push({
+                        name: '',
+                        duration: '',
+                        imageUrl: null,
+                        imageFile: null
+                    });
+                    break;
+            }
+
             return { ...prevProgram, weeks: newWeeks };
         });
     };
@@ -259,14 +407,27 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
         }
     };
 
-    const handleImageUpload = (e) => {
+    const handleImageUpload = async (e) => {
         const file = e.target.files[0];
         if (file) {
-            setEditedProgram({
-                ...editedProgram,
-                programImageFile: file,
-                programImageUrl: URL.createObjectURL(file)
-            });
+            try {
+                setIsLoading(true);
+                const path = `programs/${editedProgram.programCategory}/${editedProgram.level}/${editedProgram.id}/programImageUrl/${file.name}`;
+                const downloadUrl = await handleFileUploadWithReplacement(
+                    file,
+                    editedProgram.programImageUrl,
+                    path
+                );
+                
+                setEditedProgram(prev => ({
+                    ...prev,
+                    programImageUrl: downloadUrl
+                }));
+            } catch (error) {
+                setError("Failed to upload program image: " + error.message);
+            } finally {
+                setIsLoading(false);
+            }
         }
     };
 
@@ -276,16 +437,6 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
             const imageUrl = URL.createObjectURL(file);
             handleExerciseChange(weekIndex, dayIndex, type, null, exerciseIndex, 'imageUrl', imageUrl);
             handleExerciseChange(weekIndex, dayIndex, type, null, exerciseIndex, 'imageFile', file);
-        }
-    };
-
-    const handleDayImageUpload = (weekIndex, dayIndex, event) => {
-        const file = event.target.files[0];
-        if (file) {
-            const newProgram = { ...editedProgram };
-            newProgram.weeks[weekIndex].days[dayIndex].imageFile = file;
-            newProgram.weeks[weekIndex].days[dayIndex].imageUrl = URL.createObjectURL(file);
-            setEditedProgram(newProgram);
         }
     };
 
@@ -341,7 +492,130 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
         setIsAddingCategory(false);
     };
 
+    const handleWeekExpand = async (weekIndex) => {
+        if (!expandedWeeks[weekIndex]) {
+            setLoadingWeeks(prev => ({ ...prev, [weekIndex]: true }));
+            try {
+                const weekDetails = await getWeekDetails(
+                    program.id, 
+                    program.programCategory, 
+                    program.level, 
+                    weekIndex
+                );
+                if (weekDetails) {
+                    setEditedProgram(prev => {
+                        const newWeeks = [...prev.weeks];
+                        newWeeks[weekIndex] = weekDetails;
+                        return { ...prev, weeks: newWeeks };
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading week details:', error);
+            } finally {
+                setLoadingWeeks(prev => ({ ...prev, [weekIndex]: false }));
+                setExpandedWeeks(prev => ({ ...prev, [weekIndex]: true }));
+            }
+        } else {
+            setExpandedWeeks(prev => ({ ...prev, [weekIndex]: false }));
+        }
+    };
+
+    const handleDayDetailsChange = async (weekIndex, dayIndex, field, value) => {
+        try {
+            setIsLoading(true);
+            const updatedProgram = { ...editedProgram };
+            updatedProgram.weeks[weekIndex].days[dayIndex][field] = value;
+
+            // Update in Firebase based on field type
+            switch (field) {
+                case 'equipment':
+                    await updateDayEquipment(
+                        program.id,
+                        program.programCategory,
+                        program.level,
+                        weekIndex,
+                        dayIndex,
+                        value
+                    );
+                    break;
+                case 'focus':
+                    await updateDayFocus(
+                        program.id,
+                        program.programCategory,
+                        program.level,
+                        weekIndex,
+                        dayIndex,
+                        value
+                    );
+                    break;
+                case 'level':
+                    await updateDayLevel(
+                        program.id,
+                        program.programCategory,
+                        program.level,
+                        weekIndex,
+                        dayIndex,
+                        value
+                    );
+                    break;
+                case 'duration':
+                    await updateDayDuration(
+                        program.id,
+                        program.programCategory,
+                        program.level,
+                        weekIndex,
+                        dayIndex,
+                        value
+                    );
+                    break;
+                default:
+                    await updateDayDetails(
+                        program.id,
+                        program.programCategory,
+                        program.level,
+                        weekIndex,
+                        dayIndex,
+                        { [field]: value }
+                    );
+            }
+
+            setEditedProgram(updatedProgram);
+        } catch (error) {
+            console.error(`Error updating day ${field}:`, error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Add cleanup on program delete
+    const handleDeleteProgram = async () => {
+        try {
+            setIsLoading(true);
+            // Cleanup all images before deleting program
+            await Promise.all(editedProgram.weeks.flatMap(week => 
+                week.days.flatMap(day => {
+                    const images = [
+                        day.imageUrl,
+                        ...(day.warmUp?.map(ex => ex.gifUrl) || []),
+                        ...(day.workout?.flatMap(set => set.exercises.map(ex => ex.gifUrl)) || []),
+                        ...(day.mindfulness?.map(ex => ex.imageUrl) || []),
+                        ...(day.stretch?.map(ex => ex.imageUrl) || [])
+                    ].filter(Boolean);
+                    return images.map(url => cleanupUnusedImages(url, null));
+                })
+            ));
+            // Delete program
+            await deleteProgram(program.id);
+            onClose();
+        } catch (error) {
+            console.error("Error deleting program:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
+        <>
         <Dialog open={open} onClose={() => onClose()} maxWidth="lg" fullWidth>
             <DialogTitle>Edit Program</DialogTitle>
             <DialogContent>
@@ -471,392 +745,45 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
                                 <Box key={weekIndex} mt={2}>
                                     <Box display="flex" alignItems="center">
                                         <Chip
-                                            key={weekIndex}
                                             label={`Week ${weekIndex + 1}`}
                                             onDelete={() => deleteWeek(weekIndex)}
                                             color="primary"
                                             variant="outlined"
-                                            style={{
-                                                margin: '4px',
-                                                height: '50px',
-                                                width: '100px'
-                                            }}
-                                        />
-                                    </Box>
-                                    <Button onClick={() => addDay(weekIndex)}>Add Day</Button>
-                                    {week?.days?.map((day, dayIndex) => (
-                                        <Box key={dayIndex} mt={2} border={1} borderColor="grey.300" p={2} sx={{
-                                            "& .MuiTextField-root": { margin: '6px' }
-                                        }}>
-                                            <Box display="flex" justifyContent="space-between" alignItems="center">
-                                                <Typography variant="h6">Day {dayIndex + 1}</Typography>
-                                                <IconButton onClick={() => deleteDay(weekIndex, dayIndex)}>
-                                                    <DeleteIcon />
-                                                </IconButton>
-                                            </Box>
-
-                                            <Grid item>
-                                                <Grid container spacing={2}>
-                                                    <Grid item xs={12} container spacing={2}>
-                                                        <Grid item xs={4}>
-                                                            <TextField
-                                                                fullWidth
-                                                                label="Day Title"
-                                                                value={day.title}
-                                                                onChange={(e) => handleDayChange(weekIndex, dayIndex, 'title', e.target.value)}
-                                                            />
-                                                        </Grid>
-                                                        <Grid item xs={4}>
-                                                            <TextField
-                                                                fullWidth
-                                                                label="Day Description"
-                                                                value={day.description}
-                                                                onChange={(e) => handleDayChange(weekIndex, dayIndex, 'description', e.target.value)}
-                                                            />
-                                                        </Grid>
-                                                        <Grid item xs={4}>
-                                                            <TextField
-                                                                fullWidth
-                                                                label="Duration"
-                                                                value={day.duration}
-                                                                onChange={(e) => handleDayChange(weekIndex, dayIndex, 'duration', e.target.value)}
-                                                            />
-                                                        </Grid>
-                                                    </Grid>
-                                                    <Grid item xs={12} container spacing={2} alignItems="center">
-                                                        <Grid item xs={3}>
-                                                            <TextField
-                                                                fullWidth
-                                                                label="Target Area"
-                                                                value={currentTarget}
-                                                                onChange={(e) => setCurrentTarget(e.target.value)}
-                                                            />
-                                                        </Grid>
-                                                        <Grid item xs={2}>
+                                            />
                                                             <Button
-                                                                fullWidth
-                                                                variant="contained"
-                                                                onClick={() => handleTargetAreaChange(weekIndex, dayIndex)}
-                                                            >
-                                                                Add Target Area
-                                                            </Button>
-                                                        </Grid>
-                                                        <Grid item xs={7}>
-                                                            {day.targetArea?.map((target, index) => (
-                                                                <Chip
-                                                                    key={index}
-                                                                    label={target}
-                                                                    onDelete={() => removeTargetArea(weekIndex, dayIndex, index)}
-                                                                    style={{ margin: 4 }}
-                                                                />
-                                                            ))}
-                                                        </Grid>
-                                                        <Grid item xs={4}>
-                                                            <FormControlLabel
-                                                                control={
-                                                                    <Checkbox
-                                                                        checked={day.isOptional}
-                                                                        onChange={(e) => handleDayChange(weekIndex, dayIndex, 'isOptional', e.target.checked)}
-                                                                    />
-                                                                }
-                                                                label="Optional"
-                                                            />
-                                                        </Grid>
-                                                        <Grid item xs={8}>
-                                                            <TextField
-                                                                fullWidth
-                                                                label="Focus"
-                                                                value={day.focus}
-                                                                onChange={(e) => handleDayChange(weekIndex, dayIndex, 'focus', e.target.value)}
-                                                            />
-                                                        </Grid>
-                                                    </Grid>
-                                                </Grid>
-                                                <Grid item xs={4} sx={{
-                                                    display: 'flex',
-                                                    marginTop: '10px',
-                                                    alignItems: 'center'
-                                                }}>
-                                                    <input
-                                                        accept="image/*"
-                                                        style={{ display: 'none' }}
-                                                        id={`day-image-upload-${weekIndex}-${dayIndex}`}
-                                                        type="file"
-                                                        onChange={(e) => handleDayImageUpload(weekIndex, dayIndex, e)}
-                                                    />
-                                                    <label htmlFor={`day-image-upload-${weekIndex}-${dayIndex}`}>
-                                                        <Button variant="contained" component="span">
-                                                            Upload Day Image
+                                                onClick={() => handleWeekExpand(weekIndex)}
+                                                endIcon={expandedWeeks[weekIndex] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                                            >
+                                                {expandedWeeks[weekIndex] ? 'Collapse' : 'Expand'}
                                                         </Button>
-                                                    </label>
-                                                    {day.imageUrl && (
-                                                        <img
-                                                            src={day.imageUrl}
-                                                            alt="Day Image Preview"
-                                                            style={{
-                                                                width: '50px',
-                                                                height: '50px',
-                                                                objectFit: 'cover',
-                                                                borderRadius: '10%',
-                                                                marginLeft: '10px'
-                                                            }}
-                                                        />
-                                                    )}
-                                                </Grid>
-                                            </Grid>
-
-                                            <Box mt={2}>
-                                                <Typography variant="subtitle1">Warm Up</Typography>
-                                                <Button onClick={() => addExercise(weekIndex, dayIndex, 'warmUp')}>Add Warm Up Exercise</Button>
-                                                {day.warmUp?.map((exercise, index) => (
-                                                    <Box key={index} mt={1} sx={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center'
-                                                    }}>
-                                                        <TextField
-                                                            label="Exercise Name"
-                                                            value={exercise.name}
-                                                            onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'warmUp', null, index, 'name', e.target.value)}
-                                                        />
-                                                        <TextField
-                                                            label="Duration"
-                                                            value={exercise.duration}
-                                                            onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'warmUp', null, index, 'duration', e.target.value)}
-                                                        />
-                                                        <TextField
-                                                            label="Reps"
-                                                            value={exercise.reps}
-                                                            onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'warmUp', null, index, 'reps', e.target.value)}
-                                                        />
-                                                        <input
-                                                            accept="image/*"
-                                                            style={{ display: 'none' }}
-                                                            id={`warm-up-gif-${weekIndex}-${dayIndex}-${index}`}
-                                                            type="file"
-                                                            onChange={(e) => handleGifUpload(weekIndex, dayIndex, 'warmUp', null, index, e)}
-                                                        />
-                                                        <label htmlFor={`warm-up-gif-${weekIndex}-${dayIndex}-${index}`}>
-                                                            <Button component="span">Upload Img / GIF</Button>
-                                                        </label>
-                                                        {exercise.gifUrl && (
-                                                            <img
-                                                                src={exercise.gifUrl}
-                                                                alt="GIF Preview"
-                                                                style={{
-                                                                    width: '50px',
-                                                                    height: '50px',
-                                                                    objectFit: 'cover',
-                                                                    borderRadius: '10%',
-                                                                    marginTop: 8
-                                                                }}
-                                                            />
-                                                        )}
-                                                        <Button 
-                                                            variant="outlined" 
-                                                            color="error" 
-                                                            onClick={() => deleteExercise(weekIndex, dayIndex, 'warmUp', null, index)}
-                                                        >
-                                                            Delete
-                                                        </Button>
-                                                    </Box>
-                                                ))}
                                             </Box>
                                             
-                                            <Box mt={2} >
-                                                <Typography variant="subtitle1">Workout</Typography>
-                                                <Button onClick={() => addSet(weekIndex, dayIndex)}>Add Set</Button>
-                                                {day.workout?.map((set, setIndex) => (
-                                                    <Box key={setIndex} mt={1} sx={{
-                                                        border: '1px solid',
-                                                        borderRadius: '10px',
-                                                        padding: '10px'
-                                                    }}>
-                                                        <Chip
-                                                            key={setIndex}
-                                                            label={`Set ${setIndex + 1}`}
-                                                            onDelete={() => deleteSet(weekIndex, dayIndex, setIndex)} // Pass correct parameters
-                                                            color="primary"
-                                                            variant="outlined"
-                                                            style={{
-                                                                margin: '4px',
-                                                                height: '40px',
-                                                                width: '80px'
-                                                            }}
-                                                        />
-                                                        <Button onClick={() => addExercise(weekIndex, dayIndex, 'workout', setIndex)}>Add Exercise</Button>
-                                                        {set.exercises?.map((exercise, exerciseIndex) => (
-                                                            <Box key={exerciseIndex} mt={1} sx={{
-                                                                display: 'flex',
-                                                                justifyContent: 'space-between',
-                                                                alignItems: 'center'
-                                                            }}>
-                                                                <TextField
-                                                                    label="Exercise Name"
-                                                                    value={exercise?.name}
-                                                                    onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'name', e.target.value)}
-                                                                />
-                                                                <TextField
-                                                                    label="Reps"
-                                                                    value={exercise?.reps}
-                                                                    onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'reps', e.target.value)}
-                                                                />
-                                                                <TextField
-                                                                    label="Rest"
-                                                                    value={exercise?.rest}
-                                                                    onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'rest', e.target.value)}
-                                                                />
-                                                                <TextField
-                                                                    label="Tempo"
-                                                                    value={exercise?.tempo}
-                                                                    onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'tempo', e.target.value)}
-                                                                />
-                                                                <TextField
-                                                                    label="Duration"
-                                                                    value={exercise?.duration}
-                                                                    onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, 'duration', e.target.value)}
-                                                                />
-
-                                                                <input
-                                                                    accept="image/*"
-                                                                    style={{ display: 'none' }}
-                                                                    id={`workout-gif-${weekIndex}-${dayIndex}-${setIndex}-${exerciseIndex}`}
-                                                                    type="file"
-                                                                    onChange={(e) => handleGifUpload(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex, e)}
-                                                                />
-                                                                <label htmlFor={`workout-gif-${weekIndex}-${dayIndex}-${setIndex}-${exerciseIndex}`}>
-                                                                    <Button component="span">Upload Image / GIF</Button>
-                                                                </label>
-                                                                {exercise.gifUrl && (
-                                                                    <img
-                                                                        src={exercise.gifUrl}
-                                                                        alt="GIF Preview"
-                                                                        style={{
-                                                                            width: '50px',
-                                                                            height: '50px',
-                                                                            objectFit: 'cover',
-                                                                            borderRadius: '10%',
-                                                                            marginTop: 8,
-                                                                            marginRight:"7px"
-                                                                        }}
-                                                                    />
-                                                                )}
-                                                                <Button 
-                                                                    variant="outlined" 
-                                                                    color="error" 
-                                                                    onClick={() => deleteExercise(weekIndex, dayIndex, 'workout', setIndex, exerciseIndex)}
-                                                                >
-                                                                    Delete
-                                                                </Button>
+                                        {loadingWeeks[weekIndex] ? (
+                                            <Box display="flex" justifyContent="center" p={2}>
+                                                <CircularProgress />
                                                             </Box>
-                                                        ))}
-                                                    </Box>
+                                        ) : expandedWeeks[weekIndex] && (
+                                            <>
+                                                <Button onClick={() => addDay(weekIndex)}>Add Day</Button>
+                                                {week?.days?.map((day, dayIndex) => (
+                                                    <DaySection
+                                                        key={dayIndex}
+                                                        day={day}
+                                                        dayIndex={dayIndex}
+                                                        weekIndex={weekIndex}
+                                                        program={editedProgram}
+                                                        onDayChange={handleDayChange}
+                                                        onDeleteDay={deleteDay}
+                                                        onAddExercise={handleAddExercise}
+                                                        onDeleteExercise={deleteExercise}
+                                                        onImageUpload={handleWeeksImageUpload}
+                                                        onGifUpload={handleGifUpload}
+                                                        onAddSet={addSet}
+                                                        onDeleteSet={deleteSet}
+                                                    />
                                                 ))}
-                                            </Box>
-                                            <Box mt={2}>
-                                                <Typography variant="subtitle1">Mindfulness</Typography>
-                                                <Button onClick={() => handleAddExercise(weekIndex, dayIndex, 'mindfulness')}>Add Mindfulness Exercise</Button>
-                                                {day.mindfulness?.map((exercise, index) => (
-                                                    <Box key={index} mt={1} sx={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center'
-                                                    }}>
-                                                        <TextField
-                                                            label="Exercise Name"
-                                                            value={exercise.name}
-                                                            onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'mindfulness', null, index, 'name', e.target.value)}
-                                                        />
-                                                        <TextField
-                                                            label="Duration"
-                                                            value={exercise.duration}
-                                                            onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'mindfulness', null, index, 'duration', e.target.value)}
-                                                        />
-                                                        <input
-                                                            accept="image/*"
-                                                            style={{ display: 'none' }}
-                                                            id={`mindfulness-image-${weekIndex}-${dayIndex}-${index}`}
-                                                            type="file"
-                                                            onChange={(e) => handleWeeksImageUpload(weekIndex, dayIndex, 'mindfulness', index, e)}
-                                                        />
-                                                        <label htmlFor={`mindfulness-image-${weekIndex}-${dayIndex}-${index}`}>
-                                                            <Button component="span">Upload Image</Button>
-                                                        </label>
-                                                        {exercise.imageUrl && (
-                                                            <img
-                                                                src={exercise.imageUrl}
-                                                                alt="Image Preview"
-                                                                style={{
-                                                                    width: '50px',
-                                                                    height: '50px',
-                                                                    objectFit: 'cover',
-                                                                    borderRadius: '10%'
-                                                                }}
-                                                            />
-                                                        )}
-                                                        <Button 
-                                                            variant="outlined" 
-                                                            color="error" 
-                                                            onClick={() => deleteExercise(weekIndex, dayIndex, 'mindfulness', null, index)}
-                                                        >
-                                                            Delete
-                                                        </Button>
-                                                    </Box>
-                                                ))}
-                                            </Box>
-                                            <Box mt={2}>
-                                                <Typography variant="subtitle1">Stretch</Typography>
-                                                <Button onClick={() => handleAddExercise(weekIndex, dayIndex, 'stretch')}>Add Stretch Exercise</Button>
-                                                {day.stretch?.map((exercise, index) => (
-                                                    <Box key={index} mt={1} sx={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center'
-                                                    }}>
-                                                        <TextField
-                                                            label="Exercise Name"
-                                                            value={exercise.name}
-                                                            onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'stretch', null, index, 'name', e.target.value)}
-                                                        />
-                                                        <TextField
-                                                            label="Duration"
-                                                            value={exercise.duration}
-                                                            onChange={(e) => handleExerciseChange(weekIndex, dayIndex, 'stretch', null, index, 'duration', e.target.value)}
-                                                        />
-                                                        <input
-                                                            accept="image/*"
-                                                            style={{ display: 'none' }}
-                                                            id={`stretch-image-${weekIndex}-${dayIndex}-${index}`}
-                                                            type="file"
-                                                            onChange={(e) => handleWeeksImageUpload(weekIndex, dayIndex, 'stretch', index, e)}
-                                                        />
-                                                        <label htmlFor={`stretch-image-${weekIndex}-${dayIndex}-${index}`}>
-                                                            <Button component="span">Upload Image</Button>
-                                                        </label>
-                                                        {exercise.imageUrl && (
-                                                            <img
-                                                                src={exercise.imageUrl}
-                                                                alt="Image Preview"
-                                                                style={{
-                                                                    width: '50px',
-                                                                    height: '50px',
-                                                                    objectFit: 'cover',
-                                                                    borderRadius: '10%'
-                                                                }}
-                                                            />
-                                                        )}
-                                                        <Button 
-                                                            variant="outlined" 
-                                                            color="error" 
-                                                            onClick={() => deleteExercise(weekIndex, dayIndex, 'stretch', null, index)}
-                                                        >
-                                                            Delete
-                                                        </Button>
-                                                    </Box>
-                                                ))}
-                                            </Box>
-                                        </Box>
-                                    ))}
+                                            </>
+                                        )}
                                 </Box>
                             ))}
                         </Box>
@@ -870,6 +797,11 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
                 </Button>
             </DialogActions>
         </Dialog>
+            <ErrorAlert 
+                error={error} 
+                onClose={() => setError(null)} 
+            />
+        </>
     );
 };
 
