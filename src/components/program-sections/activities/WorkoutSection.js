@@ -101,10 +101,10 @@ const WorkoutSection = ({ workout = [], program, weekIndex, dayIndex, ...props }
                                         ) : 'Upload Img /GIF'}
                                     </Button>
                                 </label>
-                                {exercise.gifUrl && (
+                                {exercise?.gifUrl && (
                                     <Box mt={1}>
                                         <img
-                                            src={exercise.gifUrl}
+                                            src={exercise?.gifUrl}
                                             alt="Exercise Preview"
                                             style={{
                                                 width: '100px',
