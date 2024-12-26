@@ -122,13 +122,11 @@ const getProgramsByCategory = async (category) => {
         const level = levelSnapshot.key;
         levelSnapshot.forEach((programSnapshot) => {
           const program = programSnapshot.val();
-          console.log('Before transform:', JSON.stringify(program.weeks, null, 2));
           const transformed = transformForUI({
             ...program,
             level,
             programCategory: category
           });
-          console.log('After transform:', JSON.stringify(transformed.weeks, null, 2));
           programs.push(transformed);
         });
       });
@@ -500,13 +498,10 @@ const handleProgramCategoryAndLevelChange = async (oldCategory, oldLevel, progra
     
     // List all files in old location
     const oldFolderRef = storageRef(storage, oldStoragePrefix);
-    console.log("oldFolderRef", oldFolderRef);
     const filesList = await listAll(oldFolderRef);
-    console.log("filesList", filesList);
 
     // Move each file to new location
     for (const item of filesList.items) {
-      console.log("item", item);
       const oldPath = item.fullPath;
       const newPath = oldPath.replace(oldStoragePrefix, newStoragePrefix);
       
@@ -517,7 +512,6 @@ const handleProgramCategoryAndLevelChange = async (oldCategory, oldLevel, progra
 
       // Upload to new location
       const newFileRef = storageRef(storage, newPath);
-      console.log("newFileRef", newFileRef);
       await uploadBytes(newFileRef, blob);
 
       // Delete from old location
@@ -526,8 +520,6 @@ const handleProgramCategoryAndLevelChange = async (oldCategory, oldLevel, progra
 
     // Delete program from old location
     await remove(oldProgramRef);
-    console.log("oldProgramRef", oldProgramRef);
-    console.log("updatedProgram after moving", updatedProgram);
 
     return updatedProgram;
 
@@ -639,12 +631,11 @@ const handleFileUploadWithReplacement = async (file, oldUrl, newPath) => {
     try {
         // Delete old file if it exists and is not a blob URL
         if (oldUrl && !oldUrl.startsWith('blob:')) {
-          console.log("oldUrl", oldUrl);
+           
             try {
                 const oldImagePath = decodeURIComponent(oldUrl.split('/o/')[1].split('?')[0]);
                 const oldImageRef = storageRef(storage, oldImagePath);
-                console.log("oldImageRef", oldImageRef);
-                console.log("oldUrl", oldUrl);
+             
                 await deleteObject(oldImageRef);
             } catch (error) {
                 console.warn("Error deleting old image:", error);
@@ -654,11 +645,9 @@ const handleFileUploadWithReplacement = async (file, oldUrl, newPath) => {
         // Upload new file
         const compressedFile = await compressImage(file);
         const newFileRef = storageRef(storage, newPath);
-        console.log("newFileRef", newFileRef);
-        console.log("newPath", newPath);
         await uploadBytes(newFileRef, compressedFile);
         const downloadUrl = await getDownloadURL(newFileRef);
-        console.log("downloadUrl", downloadUrl);
+       
         return downloadUrl;
     } catch (error) {
         console.error("Error handling file upload:", error);
@@ -697,10 +686,8 @@ const getDayImageUrl = async (programId, programCategory, level, weekIndex, dayI
     try {
         // Path should match your DB structure: programs/category/level/programId/weeks/[index]/days/[index]
         const dayRef = ref(db, `programs/${programCategory}/${level}/${programId}/weeks/${weekIndex}/days/${dayIndex}`);
-        console.log("Getting image URL for path:", dayRef.toString());
-        
+
         const snapshot = await get(dayRef);
-        console.log("Snapshot exists:", snapshot.exists(), snapshot.val());
 
   if (snapshot.exists()) {
             const dayData = snapshot.val();
@@ -848,8 +835,7 @@ const addProgram = async (program) => {
         weeks: processedWeeks
       }.weeks)
     };
-
-    console.log('Transformed program data for Firebase:', JSON.stringify(programData, null, 2));
+ 
 
     // Save the program data
     const programRef = ref(db, `programs/${programCategory}/${level}/${id}`);

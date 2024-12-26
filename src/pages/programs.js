@@ -170,8 +170,7 @@ const Programs = () => {
             [updatedProgram.programCategory]: refreshedData
           }));
         }
-
-        console.log("Program updated successfully:", updatedProgram);
+ 
       } catch (error) {
         console.error("Error updating program in state:", error);
       } finally {

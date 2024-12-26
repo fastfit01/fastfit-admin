@@ -110,10 +110,6 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
         setEditedProgram({ ...editedProgram, [name]: value });
     };
 
-    useEffect(() => {
-        console.log("editedProgram", editedProgram);
-    }, [editedProgram]);
-
     const addWeek = () => {
         setEditedProgram({
             ...editedProgram,
@@ -208,8 +204,6 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
     };
 
     const handleDayChange = (weekIndex, dayIndex, field, setIndex, exerciseIndex, subField, value) => {
-        console.log("handleDayChange", weekIndex, dayIndex, field, setIndex, exerciseIndex, subField, value);
-        
         setEditedProgram(prevProgram => {
             const newWeeks = [...prevProgram.weeks];
             const day = newWeeks[weekIndex].days[dayIndex];

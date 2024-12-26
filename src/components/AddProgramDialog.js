@@ -36,10 +36,6 @@ const AddProgramsDialog = ({ open, onClose, onCategoryAdded }) => {
     };
 
     useEffect(() => {
-        console.log("program=>", program);
-    }, [program]);
-
-    useEffect(() => {
         const fetchCategories = async () => {
             try {
                 const types = await getAllProgramCategories();
@@ -223,9 +219,7 @@ const AddProgramsDialog = ({ open, onClose, onCategoryAdded }) => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            console.log('Submitting program data:', program);
             const result = await addProgram(program);
-            console.log('Program added successfully:', result);
             onClose();
         } catch (error) {
             console.error('Error adding program:', error);

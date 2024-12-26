@@ -7,8 +7,6 @@ const WorkoutSection = ({ workout = [], program, weekIndex, dayIndex, ...props }
     const [error, setError] = useState(null);
     const [uploading, setUploading] = useState({});
 
-    console.log('Workout data:', JSON.stringify(workout, null, 2));
-
     const handleFileUpload = async (setIndex, exerciseIndex, e) => {
         const file = e.target.files[0];
         if (file) {

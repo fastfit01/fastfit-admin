@@ -29,8 +29,6 @@ const EditMeditationDialog = ({ open, onClose, meditation }) => {
             setImagePreview(meditation.imageUrl);
             setTags(meditation.tags || []);
         }
-
-        console.log("meditation", meditation);
     }, [meditation]);
 
     useEffect(() => {
