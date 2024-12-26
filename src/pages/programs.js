@@ -1,12 +1,12 @@
 import React, { useState, useEffect, Suspense } from 'react';
-import { Typography, Grid, Fab, Box, Tabs, Tab, CircularProgress, Container, Tooltip } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import { Typography, Grid, Fab, Box, Tabs, Tab, CircularProgress, Container, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Button } from '@mui/material';
+import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import Layout from '../components/Layout';
 import TabPanel from '../components/TabPanel';
 import SearchField from '../components/SearchField';
 import dynamic from 'next/dynamic';
-import { getProgramsByCategory, deleteProgram, getAllProgramCategories } from '../firebase/programsService';
+import { getProgramsByCategory, deleteProgram, getAllProgramCategories, deleteProgramCategory } from '../firebase/programsService';
 
 // Dynamically import dialogs
 const AddProgramsDialog = dynamic(() => import('../components/AddProgramDialog'), {
@@ -35,6 +35,9 @@ const Programs = () => {
   const [currentTab, setCurrentTab] = useState(0);
   const [categories, setCategories] = useState([]);
   const [loadingStates, setLoadingStates] = useState({});
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const fetchProgramsByCategory = async () => {
@@ -71,7 +74,7 @@ const Programs = () => {
     const fetchCategories = async () => {
       try {
         const types = await getAllProgramCategories();
-        setCategories(types.map(type => type.name));
+        setCategories(types.map(type => type.name || type));
       } catch (error) {
         console.error("Error fetching categories:", error);
       }
@@ -167,8 +170,7 @@ const Programs = () => {
             [updatedProgram.programCategory]: refreshedData
           }));
         }
-
-        console.log("Program updated successfully:", updatedProgram);
+ 
       } catch (error) {
         console.error("Error updating program in state:", error);
       } finally {
@@ -190,7 +192,12 @@ const Programs = () => {
   };
 
   const formatCategoryName = (category) => {
-    return category
+    if (!category) return '';
+    
+    // If it's already a string, use it directly
+    const categoryName = typeof category === 'string' ? category : category.name;
+    
+    return categoryName
       .replace(/([A-Z])/g, ' $1')
       .replace(/^./, str => str.toUpperCase());
   };
@@ -198,9 +205,43 @@ const Programs = () => {
   const handleCategoryAdded = async () => {
     try {
       const types = await getAllProgramCategories();
-      setCategories(types.map(type => type.name));
+      setCategories(types.map(type => type.name || type));
     } catch (error) {
       console.error("Error refreshing categories:", error);
+    }
+  };
+
+  const handleDeleteCategory = (category) => {
+    setCategoryToDelete(category);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (categoryToDelete) {
+      setIsDeleting(true);
+      setIsLoading(true);
+      try {
+        await deleteProgramCategory(categoryToDelete);
+        const types = await getAllProgramCategories();
+        const categoryNames = types.map(type => type.name || type);
+        setCategories(categoryNames);
+        setCurrentTab(0);
+        
+        if (categoryNames.length > 0) {
+          const programsData = await getProgramsByCategory(categoryNames[0]);
+          setPrograms(prev => ({
+            ...prev,
+            [categoryNames[0]]: programsData
+          }));
+        }
+      } catch (error) {
+        console.error("Error deleting category:", error);
+      } finally {
+        setIsLoading(false);
+        setIsDeleting(false);
+        setDeleteDialogOpen(false);
+        setCategoryToDelete(null);
+      }
     }
   };
 
@@ -222,8 +263,24 @@ const Programs = () => {
             >
               {categories.map((category, index) => (
                 <Tab 
-                  key={category} 
-                  label={formatCategoryName(category)}
+                  key={category}
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      {formatCategoryName(category)}
+                      {categories.length > 1 && (
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCategory(category);
+                          }}
+                          sx={{ ml: 1 }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
+                  }
                   id={`tab-${index}`}
                   aria-controls={`tabpanel-${index}`}
                 />
@@ -293,6 +350,40 @@ const Programs = () => {
               onCategoryAdded={handleCategoryAdded}
             />
           )}
+
+          <Dialog
+            open={deleteDialogOpen}
+            onClose={() => !isDeleting && setDeleteDialogOpen(false)}
+          >
+            <DialogTitle>Delete Category</DialogTitle>
+            <DialogContent>
+              <Box sx={{ mb: 2 }}>
+                Are you sure you want to delete the category "{categoryToDelete}"? 
+                This will permanently delete all programs in this category.
+              </Box>
+              {isDeleting && (
+                <Box display="flex" justifyContent="center" my={2}>
+                  <CircularProgress size={24} />
+                </Box>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button 
+                onClick={() => setDeleteDialogOpen(false)} 
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleConfirmDelete} 
+                color="error"
+                disabled={isDeleting}
+                startIcon={isDeleting ? <CircularProgress size={20} /> : null}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            </DialogActions>
+          </Dialog>
         </Container>
       </Layout>
     </ProtectedRoute>

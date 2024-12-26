@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, InputLabel, FormControl, Chip, Box, Typography, Grid, Checkbox, FormControlLabel, CircularProgress } from '@mui/material';
-import { addProgram, getAllProgramCategories, addNewProgramCategory } from '../firebase/programsService';
+import { addProgram, getAllProgramCategories, addNewProgramCategory, handleFileUploadWithReplacement, transformWeeks, transformWorkoutForFirebase } from '../firebase/programsService';
 import { v4 as uuidv4 } from 'uuid';
 
 const formatCategoryName = (category) => {
@@ -28,15 +28,12 @@ const AddProgramsDialog = ({ open, onClose, onCategoryAdded }) => {
     const [programCategories, setProgramCategories] = useState([]);
     const [newCategory, setNewCategory] = useState('');
     const [isAddingCategory, setIsAddingCategory] = useState(false);
+    const [error, setError] = useState('');
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setProgram({ ...program, [name]: value });
     };
-
-    useEffect(() => {
-        console.log("program=>", program);
-    }, [program]);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -105,11 +102,12 @@ const AddProgramsDialog = ({ open, onClose, onCategoryAdded }) => {
                 title: '',
                 description: '',
                 duration: '',
+                equipment: '',
                 targetArea: [],
                 isOptional: false,
-                imageUrl: '',
+                focus: '',
                 level: '',
-                equipment: [],
+                imageUrl: '',
                 warmUp: [],
                 workout: []
             });
@@ -221,57 +219,44 @@ const AddProgramsDialog = ({ open, onClose, onCategoryAdded }) => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            const programToSubmit = {
-                ...program,
-                programImageFile: program.programImageFile,
-                weeks: program.weeks.map(week => ({
-                    ...week,
-                    days: week.days.map(day => ({
-                        ...day,
-                        imageFile: day.imageFile,
-                        warmUp: day.warmUp.map(exercise => ({
-                            ...exercise,
-                            gifFile: exercise.gifFile
-                        })),
-                        workout: day.workout.map(exercise => ({
-                            ...exercise,
-                            gifFile: exercise.gifFile
-                        })),
-                        mindfulness: day.mindfulness?.map(exercise => ({
-                            ...exercise,
-                            imageFile: exercise.imageFile
-                        })),
-                        stretch: day.stretch?.map(exercise => ({
-                            ...exercise,
-                            imageFile: exercise.imageFile
-                        }))
-                    }))
-                }))
-            }
-
-            console.log("programToSubmit=>", programToSubmit);
-
-            const newProgram = await addProgram(programToSubmit);
-            console.log("newProgram=>", newProgram);
-
-            onClose(newProgram);
+            const result = await addProgram(program);
+            onClose();
         } catch (error) {
             console.error('Error adding program:', error);
+            setError('Failed to add program');
         } finally {
             setIsLoading(false);
-            setProgram("");
         }
     };
 
-    const handleDayImageUpload = (weekIndex, dayIndex, e) => {
+    const handleDayImageUpload = async (weekIndex, dayIndex, e) => {
         const file = e.target.files[0];
-        const imageUrl = URL.createObjectURL(file);
-        setProgram(prevProgram => {
-            const newWeeks = [...prevProgram.weeks];
-            newWeeks[weekIndex].days[dayIndex].imageUrl = imageUrl;
-            newWeeks[weekIndex].days[dayIndex].imageFile = file;
-            return { ...prevProgram, weeks: newWeeks };
-        });
+        if (!file) return;
+
+        try {
+            setIsLoading(true);
+            const path = `programs/${program.programCategory}/${program.level}/${program.id}/weeks/week${weekIndex + 1}/days/day${dayIndex + 1}/dayImage/${file.name}`;
+            
+            const downloadUrl = await handleFileUploadWithReplacement(
+                file,
+                program.weeks[weekIndex]?.days[dayIndex]?.imageUrl,
+                path
+            );
+
+            setProgram(prev => {
+                const newProgram = { ...prev };
+                if (!newProgram.weeks[weekIndex].days[dayIndex]) {
+                    newProgram.weeks[weekIndex].days[dayIndex] = {};
+                }
+                newProgram.weeks[weekIndex].days[dayIndex].imageUrl = downloadUrl;
+                return newProgram;
+            });
+        } catch (error) {
+            console.error("Error uploading day image:", error);
+            setError("Failed to upload day image");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
 
@@ -500,6 +485,27 @@ const AddProgramsDialog = ({ open, onClose, onCategoryAdded }) => {
                                                 value={day.duration}
                                                 onChange={(e) => handleDayChange(weekIndex, dayIndex, 'duration', e.target.value)}
                                             />
+                                            <TextField
+                                                fullWidth
+                                                label="Equipment needed"
+                                                value={day.equipment}
+                                                onChange={(e) => handleDayChange(weekIndex, dayIndex, 'equipment', e.target.value)}
+                                                placeholder="e.g., dumbbells, yoga mat, resistance bands"
+                                                margin="normal"
+                                            />
+
+                                            <FormControl fullWidth margin="normal">
+                                                <InputLabel>Day Level</InputLabel>
+                                                <Select
+                                                    value={day.level || ''}
+                                                    onChange={(e) => handleDayChange(weekIndex, dayIndex, 'level', e.target.value)}
+                                                    label="Day Level"
+                                                >
+                                                    <MenuItem value="beginner">Beginner</MenuItem>
+                                                    <MenuItem value="Intermediate">Intermediate</MenuItem>
+                                                    <MenuItem value="Advanced">Advanced</MenuItem>
+                                                </Select>
+                                            </FormControl>
 
                                             <Grid item xs={12} sx={{
                                                 display: 'flex',

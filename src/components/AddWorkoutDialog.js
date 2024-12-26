@@ -2059,13 +2059,6 @@ const AddWorkoutDialog = ({ open, onClose }) => {
     );
 
 
-    useEffect(() => {
-        console.log("workout88899", workout);
-        console.log("workout77666", workout[workout.workoutType][workout.level]);
-
-    }, [workout, setWorkout])
-
-
     return (
         <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
             <DialogTitle>Add New Workout</DialogTitle>

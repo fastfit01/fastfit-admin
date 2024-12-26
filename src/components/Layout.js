@@ -77,9 +77,6 @@ const Layout = ({ children }) => {
   };
 
   const handleLogout = () => {
-    // Implement logout logic here
-    console.log('Logging out...');
-    // For example: clear local storage, reset state, redirect to login page
     router.push('/login');
   };
 
