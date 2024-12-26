@@ -322,7 +322,7 @@ const updateProgram = async (programId, programData, oldCategory, oldLevel) => {
 
             // Process warmUp exercises
             const processedWarmUp = await Promise.all((day.warmUp || []).map(async (exercise, index) => {
-              let gifUrl = exercise.gifUrl;
+              let gifUrl = exercise.gifUrl || '';
               if (exercise.gifFile) {
                 if (oldDay?.warmUp?.[index]?.gifUrl) {
                   await deleteOldImage(oldDay.warmUp[index].gifUrl);
@@ -348,7 +348,7 @@ const updateProgram = async (programId, programData, oldCategory, oldLevel) => {
                 const setKey = `set${setIndex + 1}`;
                 
                 processedWorkout[setKey] = await Promise.all(set.exercises.map(async (exercise) => {
-                  let gifUrl = exercise.gifUrl;
+                  let gifUrl = exercise.gifUrl || '';
                   if (exercise.gifFile) {
                     const oldExercise = oldDay?.workout?.[setKey]?.[0];
                     if (oldExercise?.gifUrl) {
@@ -365,7 +365,7 @@ const updateProgram = async (programId, programData, oldCategory, oldLevel) => {
                     rest: exercise.rest || '',
                     tempo: exercise.tempo || '',
                     duration: exercise.duration || '',
-                    gifUrl
+                    gifUrl: gifUrl || ''
                   };
                 }));
               }
@@ -373,7 +373,7 @@ const updateProgram = async (programId, programData, oldCategory, oldLevel) => {
 
             // Process mindfulness exercises
             const processedMindfulness = await Promise.all((day.mindfulness || []).map(async (exercise, index) => {
-              let imageUrl = exercise.imageUrl;
+              let imageUrl = exercise.imageUrl || '';
               if (exercise.imageFile) {
                 if (oldDay?.mindfulness?.[index]?.imageUrl) {
                   await deleteOldImage(oldDay.mindfulness[index].imageUrl);
@@ -386,13 +386,13 @@ const updateProgram = async (programId, programData, oldCategory, oldLevel) => {
               return {
                 name: exercise.name || '',
                 duration: exercise.duration || '',
-                imageUrl
+                imageUrl: imageUrl || ''
               };
             }));
 
             // Process stretch exercises
             const processedStretch = await Promise.all((day.stretch || []).map(async (exercise, index) => {
-              let imageUrl = exercise.imageUrl;
+              let imageUrl = exercise.imageUrl || '';
               if (exercise.imageFile) {
                 if (oldDay?.stretch?.[index]?.imageUrl) {
                   await deleteOldImage(oldDay.stretch[index].imageUrl);
@@ -405,7 +405,7 @@ const updateProgram = async (programId, programData, oldCategory, oldLevel) => {
               return {
                 name: exercise.name || '',
                 duration: exercise.duration || '',
-                imageUrl
+                imageUrl: imageUrl || ''
               };
             }));
 
@@ -439,10 +439,10 @@ const updateProgram = async (programId, programData, oldCategory, oldLevel) => {
       description: updatedProgram.description || '',
       duration: updatedProgram.duration || '',
       guidedOrSelfGuidedProgram: updatedProgram.guidedOrSelfGuidedProgram || '',
-      programImageUrl: updatedProgram.programImageUrl,
-      level: updatedProgram.level,
-      programCategory: updatedProgram.programCategory,
-      weeks: updatedProgram.weeks
+      programImageUrl: updatedProgram.programImageUrl || '',
+      level: updatedProgram.level || '',
+      programCategory: updatedProgram.programCategory || '',
+      weeks: updatedProgram.weeks || {}
     };
 
     // Update database
