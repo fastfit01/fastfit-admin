@@ -866,6 +866,47 @@ const transformForUI = (program) => {
   };
 };
 
+// Add this function to handle program deletion
+const deleteProgram = async (programId, programCategory, level) => {
+  try {
+    // Delete from Realtime Database
+    const programRef = ref(db, `programs/${programCategory}/${level}/${programId}`);
+    
+    // Check if program exists
+    const snapshot = await get(programRef);
+    if (!snapshot.exists()) {
+      throw new Error('Program not found');
+    }
+    
+    // Delete all associated files from Storage
+    const basePath = `programs/${programCategory}/${level}/${programId}`;
+    const baseRef = storageRef(storage, basePath);
+    
+    try {
+      // List all files in the program directory
+      const filesList = await listAll(baseRef);
+      
+      // Delete all files
+      await Promise.all(filesList.items.map(item => deleteObject(item)));
+      
+      // Delete all subdirectories
+      await Promise.all(filesList.prefixes.map(async (prefix) => {
+        const subFiles = await listAll(prefix);
+        await Promise.all(subFiles.items.map(item => deleteObject(item)));
+      }));
+    } catch (error) {
+      console.warn("Error deleting program files:", error);
+    }
+
+    // Finally delete the program data from database
+    await remove(programRef);
+    return true;
+  } catch (error) {
+    console.error("Error deleting program:", error);
+    throw error;
+  }
+};
+
 // Export all the functions
 export {
   getProgramsByCategory,
@@ -889,5 +930,6 @@ export {
   handleStretchImageUpload,
   handleFileUploadWithReplacement,
   transformWorkoutForFirebase,
-  handleProgramCategoryAndLevelChange
+  handleProgramCategoryAndLevelChange,
+  deleteProgram
 };

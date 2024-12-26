@@ -115,14 +115,20 @@ const Programs = () => {
     setOpenEditDialog(true);
   };
 
-  const handleDeleteClick = async (programId, programCategory, level) => {
+  const handleDeleteClick = async (program) => {
     if (window.confirm('Are you sure you want to delete this program?')) {
-      setIsLoading(true);
       try {
-        await deleteProgram(programId, programCategory, level);
+        setIsLoading(true);
+        await deleteProgram(
+          program.id,
+          program.programCategory,
+          program.level
+        );
+        
+        // Update local state after successful deletion
         setPrograms(prev => ({
           ...prev,
-          [programCategory]: prev[programCategory].filter(p => p.id !== programId)
+          [program.programCategory]: prev[program.programCategory].filter(p => p.id !== program.id)
         }));
       } catch (error) {
         console.error("Error deleting program:", error);
@@ -308,7 +314,7 @@ const Programs = () => {
                         <ProgramCard
                           program={program}
                           onEdit={() => handleEditClick(program)}
-                          onDelete={() => handleDeleteClick(program.id, program.programCategory, program.level)}
+                          onDelete={() => handleDeleteClick(program)}
                         />
                       </Grid>
                     ))}
