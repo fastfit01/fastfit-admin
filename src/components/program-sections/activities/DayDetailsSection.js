@@ -13,6 +13,7 @@ const DayDetailsSection = ({
 }) => {
     const [error, setError] = useState(null);
     const [currentTarget, setCurrentTarget] = useState('');
+    const [isUploading, setIsUploading] = useState(false);
 
     const handleEquipmentChange = (e) => {
         try {
@@ -45,6 +46,12 @@ const DayDetailsSection = ({
     const removeTargetArea = (targetIndex) => {
         const newTargetArea = (day.targetArea || []).filter((_, index) => index !== targetIndex);
         onDayChange(weekIndex, dayIndex, 'targetArea', null, null, null, newTargetArea);
+    };
+
+    const handleImageUpload = async (e) => {
+        setIsUploading(true);
+        await onImageUpload(e);
+        setIsUploading(false);
     };
 
     return (
@@ -96,11 +103,11 @@ const DayDetailsSection = ({
                         style={{ display: 'none' }}
                         id={`day-image-upload-${weekIndex}-${dayIndex}`}
                         type="file"
-                        onChange={onImageUpload}
+                        onChange={handleImageUpload}
                     />
                     <label htmlFor={`day-image-upload-${weekIndex}-${dayIndex}`}>
                         <Button variant="contained" component="span">
-                            {day.imageUrl ? 'Change Day Image' : 'Upload Day Image'}
+                            {isUploading ? 'Uploading...' : (day.imageUrl ? 'Change Day Image' : 'Upload Day Image')}
                         </Button>
                     </label>
                     {day.imageUrl && (

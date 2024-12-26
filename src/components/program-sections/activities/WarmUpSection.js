@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Typography, TextField, Button } from '@mui/material';
 import { handleGifUpload as uploadGif } from '../../../firebase/programsService';
 
@@ -11,6 +11,8 @@ const WarmUpSection = ({
     onAddExercise, 
     onDeleteExercise
 }) => {
+    const [uploading, setUploading] = useState({});
+
     const handleAddWarmUp = () => {
         if (onAddExercise) {
             onAddExercise(weekIndex, dayIndex, 'warmUp');
@@ -21,6 +23,7 @@ const WarmUpSection = ({
         const file = e.target.files[0];
         if (file) {
             try {
+                setUploading({ [exerciseIndex]: true });
                 const downloadUrl = await uploadGif(
                     program.id,
                     program.programCategory,
@@ -36,6 +39,8 @@ const WarmUpSection = ({
                 onExerciseChange(weekIndex, dayIndex, 'warmUp', null, exerciseIndex, 'gifUrl', downloadUrl);
             } catch (error) {
                 console.error("Error uploading GIF:", error);
+            } finally {
+                setUploading({ [exerciseIndex]: false });
             }
         }
     };
@@ -74,7 +79,9 @@ const WarmUpSection = ({
                         onChange={(e) => handleFileUpload(index, e)}
                     />
                     <label htmlFor={`warm-up-gif-${weekIndex}-${dayIndex}-${index}`}>
-                        <Button component="span">Upload Img / GIF</Button>
+                        <Button component="span">
+                            {uploading[index] ? 'Uploading...' : 'Upload Img / GIF'}
+                        </Button>
                     </label>
                     {exercise.gifUrl && (
                         <img

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Typography, TextField, Button } from '@mui/material';
 import { handleStretchImageUpload } from '../../../firebase/programsService';
 
@@ -12,6 +12,8 @@ const StretchSection = ({
     onDeleteExercise,
     onImageUpload 
 }) => {
+    const [uploading, setUploading] = useState({});
+
     const handleAddStretch = () => {
         if (onAddExercise) {
             onAddExercise(weekIndex, dayIndex, 'stretch');
@@ -22,6 +24,7 @@ const StretchSection = ({
         const file = e.target.files[0];
         if (file) {
             try {
+                setUploading({ [index]: true });
                 const downloadUrl = await handleStretchImageUpload(
                     program.id,
                     program.programCategory,
@@ -35,6 +38,8 @@ const StretchSection = ({
                 onExerciseChange(weekIndex, dayIndex, 'stretch', null, index, 'imageUrl', downloadUrl);
             } catch (error) {
                 console.error("Error uploading image:", error);
+            } finally {
+                setUploading({ [index]: false });
             }
         }
     };
@@ -67,7 +72,9 @@ const StretchSection = ({
                         onChange={(e) => handleImageUpload(index, e)}
                     />
                     <label htmlFor={`stretch-image-${weekIndex}-${dayIndex}-${index}`}>
-                        <Button component="span">Upload Image</Button>
+                        <Button component="span">
+                            {uploading[index] ? 'Uploading...' : 'Upload Image'}
+                        </Button>
                     </label>
                     {exercise.imageUrl && (
                         <img

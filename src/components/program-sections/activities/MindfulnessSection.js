@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Typography, TextField, Button } from '@mui/material';
 import { handleMindfulnessImageUpload } from '../../../firebase/programsService';
 
@@ -12,6 +12,8 @@ const MindfulnessSection = ({
     onDeleteExercise,
     onImageUpload 
 }) => {
+    const [uploading, setUploading] = useState({});
+
     const handleAddMindfulness = () => {
         if (onAddExercise) {
             onAddExercise(weekIndex, dayIndex, 'mindfulness');
@@ -22,6 +24,7 @@ const MindfulnessSection = ({
         const file = e.target.files[0];
         if (file) {
             try {
+                setUploading({ [index]: true });
                 const downloadUrl = await handleMindfulnessImageUpload(
                     program.id,
                     program.programCategory,
@@ -35,6 +38,8 @@ const MindfulnessSection = ({
                 onExerciseChange(weekIndex, dayIndex, 'mindfulness', null, index, 'imageUrl', downloadUrl);
             } catch (error) {
                 console.error("Error uploading image:", error);
+            } finally {
+                setUploading({ [index]: false });
             }
         }
     };
@@ -67,7 +72,9 @@ const MindfulnessSection = ({
                         onChange={(e) => handleImageUpload(index, e)}
                     />
                     <label htmlFor={`mindfulness-image-${weekIndex}-${dayIndex}-${index}`}>
-                        <Button component="span">Upload Image</Button>
+                        <Button component="span">
+                            {uploading[index] ? 'Uploading...' : 'Upload Image'}
+                        </Button>
                     </label>
                     {exercise.imageUrl && (
                         <img
