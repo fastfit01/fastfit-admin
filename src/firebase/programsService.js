@@ -33,9 +33,11 @@ const transformWeeks = (weeks) => {
           title: day.title || '',
           description: day.description || '',
           duration: day.duration || '',
+          equipment: day.equipment || '',
           targetArea: day.targetArea || [],
           isOptional: day.isOptional || false,
           focus: day.focus || '',
+          level: day.level || '',
           imageUrl: day.imageUrl || '',
           warmUp: (day.warmUp || []).map(exercise => ({
             name: exercise.name || '',
@@ -414,6 +416,7 @@ const updateProgram = async (programId, programData, oldCategory, oldLevel) => {
               title: day.title || '',
               description: day.description || '',
               duration: day.duration || '',
+              equipment: day.equipment || '',
               targetArea: Array.isArray(day.targetArea) ? 
                 day.targetArea.map(target => Array.isArray(target) ? target : target.split('')) : [],
               isOptional: day.isOptional || false,

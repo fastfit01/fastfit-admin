@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Typography, TextField, Button } from '@mui/material';
 import { handleGifUpload as uploadGif } from '../../../firebase/programsService';
 
@@ -39,6 +39,7 @@ const WarmUpSection = ({
             }
         }
     };
+
 
     return (
         <Box mt={2}>

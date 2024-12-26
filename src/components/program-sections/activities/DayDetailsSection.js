@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Box, Typography, TextField, FormControlLabel, Checkbox, Select, MenuItem, FormControl, InputLabel, Button, IconButton } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Box, Typography, TextField, FormControlLabel, Checkbox, Select, MenuItem, FormControl, InputLabel, Button, IconButton, Chip } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ErrorAlert from '../../ErrorAlert';
 
@@ -12,10 +12,11 @@ const DayDetailsSection = ({
     onImageUpload
 }) => {
     const [error, setError] = useState(null);
+    const [currentTarget, setCurrentTarget] = useState('');
 
     const handleEquipmentChange = (e) => {
         try {
-            onDayChange(weekIndex, dayIndex, 'description', null, null, null, e.target.value);
+            onDayChange(weekIndex, dayIndex, 'equipment', null, null, null, e.target.value);
         } catch (error) {
             setError(`Failed to update equipment: ${error.message}`);
         }
@@ -33,6 +34,19 @@ const DayDetailsSection = ({
         onDayChange(weekIndex, dayIndex, 'duration', null, null, null, e.target.value);
     };
 
+    const handleTargetAreaChange = () => {
+        if (currentTarget) {
+            const existingTargets = day.targetArea || [];
+            onDayChange(weekIndex, dayIndex, 'targetArea', null, null, null, [...existingTargets, currentTarget]);
+            setCurrentTarget('');
+        }
+    };
+
+    const removeTargetArea = (targetIndex) => {
+        const newTargetArea = (day.targetArea || []).filter((_, index) => index !== targetIndex);
+        onDayChange(weekIndex, dayIndex, 'targetArea', null, null, null, newTargetArea);
+    };
+
     return (
         <>
             <Box mt={2}>
@@ -46,6 +60,35 @@ const DayDetailsSection = ({
                         <DeleteIcon />
                     </IconButton>
                 </Box>
+
+                <TextField
+                    fullWidth
+                    label="Title"
+                    value={day.title || ''}
+                    onChange={(e) => onDayChange(weekIndex, dayIndex, 'title', null, null, null, e.target.value)}
+                    placeholder="Day Title"
+                    margin="normal"
+                />
+
+                <TextField
+                    fullWidth
+                    label="Description"
+                    value={day.description || ''}
+                    onChange={(e) => onDayChange(weekIndex, dayIndex, 'description', null, null, null, e.target.value)}
+                    placeholder="Day Description"
+                    margin="normal"
+                    multiline
+                    rows={2}
+                />
+
+                <TextField
+                    fullWidth
+                    label="Equipment needed"
+                    value={day.equipment || ''}
+                    onChange={handleEquipmentChange}
+                    placeholder="e.g., dumbbells, yoga mat, resistance bands"
+                    margin="normal"
+                />
                 
                 <Box mt={2} mb={2}>
                     <input
@@ -88,7 +131,7 @@ const DayDetailsSection = ({
                 <FormControl fullWidth margin="normal">
                     <InputLabel>Level</InputLabel>
                     <Select
-                        value={day.level || ''}
+                        value={day?.level || ''}
                         onChange={handleLevelChange}
                         label="Level"
                     >
@@ -107,17 +150,6 @@ const DayDetailsSection = ({
                     margin="normal"
                 />
 
-                <TextField
-                    fullWidth
-                    label="Equipment needed (use commas to separate items)"
-                    value={day.description || ''}
-                    onChange={handleEquipmentChange}
-                    placeholder="e.g., dumbbells, yoga mat, resistance bands"
-                    margin="normal"
-                    multiline
-                    rows={2}
-                />
-
                 <FormControlLabel
                     control={
                         <Checkbox
@@ -127,6 +159,36 @@ const DayDetailsSection = ({
                     }
                     label="Optional Day"
                 />
+
+                <Box mt={2}>
+                    <Typography variant="subtitle2">Target Areas</Typography>
+                    <Box display="flex" alignItems="center" gap={1} mb={1}>
+                        <TextField
+                            label="Add Target Area"
+                            value={currentTarget}
+                            onChange={(e) => setCurrentTarget(e.target.value)}
+                            size="small"
+                        />
+                        <Button 
+                            onClick={handleTargetAreaChange}
+                            variant="contained"
+                            size="small"
+                        >
+                            Add
+                        </Button>
+                    </Box>
+                    <Box display="flex" flexWrap="wrap" gap={1}>
+                        {day.targetArea?.map((target, index) => (
+                            <Chip
+                                key={index}
+                                label={target}
+                                onDelete={() => removeTargetArea(index)}
+                                color="primary"
+                                variant="outlined"
+                            />
+                        ))}
+                    </Box>
+                </Box>
             </Box>
             <ErrorAlert 
                 error={error} 

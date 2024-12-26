@@ -106,11 +106,12 @@ const AddProgramsDialog = ({ open, onClose, onCategoryAdded }) => {
                 title: '',
                 description: '',
                 duration: '',
+                equipment: '',
                 targetArea: [],
                 isOptional: false,
-                imageUrl: '',
+                focus: '',
                 level: '',
-                equipment: [],
+                imageUrl: '',
                 warmUp: [],
                 workout: []
             });
@@ -490,6 +491,27 @@ const AddProgramsDialog = ({ open, onClose, onCategoryAdded }) => {
                                                 value={day.duration}
                                                 onChange={(e) => handleDayChange(weekIndex, dayIndex, 'duration', e.target.value)}
                                             />
+                                            <TextField
+                                                fullWidth
+                                                label="Equipment needed"
+                                                value={day.equipment}
+                                                onChange={(e) => handleDayChange(weekIndex, dayIndex, 'equipment', e.target.value)}
+                                                placeholder="e.g., dumbbells, yoga mat, resistance bands"
+                                                margin="normal"
+                                            />
+
+                                            <FormControl fullWidth margin="normal">
+                                                <InputLabel>Day Level</InputLabel>
+                                                <Select
+                                                    value={day.level || ''}
+                                                    onChange={(e) => handleDayChange(weekIndex, dayIndex, 'level', e.target.value)}
+                                                    label="Day Level"
+                                                >
+                                                    <MenuItem value="beginner">Beginner</MenuItem>
+                                                    <MenuItem value="Intermediate">Intermediate</MenuItem>
+                                                    <MenuItem value="Advanced">Advanced</MenuItem>
+                                                </Select>
+                                            </FormControl>
 
                                             <Grid item xs={12} sx={{
                                                 display: 'flex',

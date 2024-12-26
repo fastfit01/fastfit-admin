@@ -35,6 +35,8 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
                 title: day?.title ?? '',
                 description: day?.description ?? '',
                 duration: day?.duration ?? '',
+                equipment: day?.equipment ?? '',
+                level: day?.level ?? '',
                 targetArea: day?.targetArea ?? [],
                 isOptional: day?.isOptional ?? false,
                 focus: day?.focus ?? '',
@@ -86,6 +88,8 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
                     title: day?.title ?? '',
                     description: day?.description ?? '',
                     duration: day?.duration ?? '',
+                    equipment: day?.equipment ?? '',
+                    level: day?.level ?? '',
                     targetArea: day?.targetArea ?? [],
                     isOptional: day?.isOptional ?? false,
                     focus: day?.focus ?? '',
@@ -209,6 +213,12 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
         setEditedProgram(prevProgram => {
             const newWeeks = [...prevProgram.weeks];
             const day = newWeeks[weekIndex].days[dayIndex];
+
+            // Handle target area updates
+            if (field === 'targetArea') {
+                day.targetArea = value;
+                return { ...prevProgram, weeks: newWeeks };
+            }
 
             // Handle image file uploads
             if (field === 'imageFile') {
@@ -339,6 +349,17 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
             const day = newWeeks[weekIndex].days[dayIndex];
 
             switch (type) {
+                case 'warmUp':
+                    if (!day.warmUp) day.warmUp = [];
+                    day.warmUp.push({
+                        name: '',
+                        duration: '',
+                        reps: '',
+                        gifUrl: null,
+                        gifFile: null
+                    });
+                    break;
+
                 case 'workout':
                     if (!day.workout) day.workout = [];
                     if (!day.workout[setIndex]) {
@@ -361,11 +382,11 @@ const EditProgramsDialog = ({ open, onClose, program, onCategoryAdded }) => {
                 case 'mindfulness':
                     if (!day.mindfulness) day.mindfulness = [];
                     day.mindfulness.push({
-                name: '',
-                duration: '',
-                imageUrl: null,
-                imageFile: null
-            });
+                        name: '',
+                        duration: '',
+                        imageUrl: null,
+                        imageFile: null
+                    });
                     break;
 
                 case 'stretch':
