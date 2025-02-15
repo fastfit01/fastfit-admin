@@ -11,7 +11,8 @@ const menuItems = [
   { text: 'Programs', icon: <DashboardIcon />, path: '/programs' },
   { text: 'Workouts', icon: <WorkoutIcon />, path: '/workouts' },
   { text: 'Meditations', icon: <MeditationIcon />, path: '/meditations' },
-  { text: 'Meals', icon: <MealsIcon />, path: '/meals' }, //
+  { text: 'Meals', icon: <MealsIcon />, path: '/meals' }, 
+  { text: 'Problem Area', icon: <MealsIcon />, path: '/problemArea' }, //
 ];
 
 // Separate component for the drawer content
