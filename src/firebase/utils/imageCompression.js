@@ -2,6 +2,11 @@ import imageCompression from 'browser-image-compression';
 
 export const compressImage = async (imageFile, options = {}) => {
   try {
+    // Skip compression for GIF files
+    if (imageFile?.type == 'image/gif') {
+      return imageFile;
+    }
+
     const defaultOptions = {
       maxSizeMB: 1,          // Maximum size in MB
       maxWidthOrHeight: 1024, // Maximum width/height
@@ -23,5 +28,7 @@ export const compressImage = async (imageFile, options = {}) => {
 
 // Utility function to check if file needs compression
 export const shouldCompress = (file, maxSizeMB = 1) => {
+  // Don't compress GIFs
+  if (file && file?.type == 'image/gif') return false;
   return file && file.type.startsWith('image/') && file.size > maxSizeMB * 1024 * 1024;
-}; 
+};
